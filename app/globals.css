@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+:root {
+  --background: #080b12;
+  --foreground: #f7f8fa;
+  --muted: #111727;
+  --muted-foreground: #9aa4b8;
+  --card: #0e1423;
+  --card-foreground: #f7f8fa;
+  --border: #1f2a44;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --danger: #f43f5e;
+  --success: #10b981;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

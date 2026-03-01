@@ -1,0 +1,56 @@
+{
+  "name": "landlines",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "server:dev": "tsx watch server/index.ts",
+    "server:start": "tsx server/index.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run server:dev\" \"npm run convex:dev\""
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.22.0",
+    "@polar-sh/sdk": "^0.45.1",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@twilio/voice-sdk": "^2.12.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "convex": "^1.30.0",
+    "express": "^4.21.2",
+    "lucide-react": "^0.511.0",
+    "next": "^16.1.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwind-merge": "^3.3.1",
+    "twilio": "^5.8.0",
+    "twilio-video": "^2.34.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.16",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.6.1",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@typescript-eslint/eslint-plugin": "^8.46.1",
+    "@typescript-eslint/parser": "^8.46.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.37.0",
+    "eslint-config-next": "^16.1.6",
+    "postcss": "^8.5.6",
+    "shadcn": "^3.4.0",
+    "tailwindcss": "^4.1.16",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
