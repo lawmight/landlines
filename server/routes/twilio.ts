@@ -5,7 +5,8 @@ import { createVideoToken, createVoiceToken, ensureVideoRoom } from "../lib/twil
 
 const tokenRequestSchema = z.object({
   identity: z.string().min(1).max(121).regex(/^[A-Za-z0-9_]+$/, "Identity must be alphanumeric or underscore."),
-  roomName: z.string().min(1).max(120)
+  roomName: z.string().min(1).max(120),
+  mode: z.enum(["voice", "video"]).default("video")
 });
 
 export const twilioRouter = Router();
@@ -20,8 +21,11 @@ twilioRouter.post("/token", async (req, res) => {
   }
 
   try {
-    const { identity, roomName } = parseResult.data;
-    await ensureVideoRoom(roomName);
+    const { identity, roomName, mode } = parseResult.data;
+
+    if (mode === "video") {
+      await ensureVideoRoom(roomName);
+    }
 
     const voiceToken = createVoiceToken(identity, roomName);
     const videoToken = createVideoToken(identity, roomName);

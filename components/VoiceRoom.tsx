@@ -59,7 +59,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
       setError(null);
 
       try {
-        const tokens = await fetchTwilioTokens(user.id, roomId);
+        const tokens = await fetchTwilioTokens(user.id, roomId, "voice");
         const VoiceSdk = await import("@twilio/voice-sdk");
         const device = new VoiceSdk.Device(tokens.voiceToken) as unknown as VoiceDevice;
 
@@ -72,7 +72,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
 
         device.on("tokenWillExpire", async () => {
           try {
-            const refreshedTokens = await fetchTwilioTokens(user.id, roomId);
+            const refreshedTokens = await fetchTwilioTokens(user.id, roomId, "voice");
             device.updateToken(refreshedTokens.voiceToken);
           } catch (caught) {
             const message = caught instanceof Error ? caught.message : "Token refresh failed.";
@@ -102,10 +102,9 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
         connectionRef.current = connection;
         setStatus("connected");
 
-        connection.on("warning", async () => {
+        connection.on("warning", () => {
           setNetworkState("poor");
           setError("Poor internet detected. Audio quality may degrade.");
-          await failCall(roomId, "voice_network_warning");
         });
 
         connection.on("warning-cleared", () => {

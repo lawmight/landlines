@@ -30,6 +30,6 @@ Private, invite-only voice and video calling built with Next.js App Router, Cler
 
 ## Important Notes
 
-- Run `npx convex dev` once to regenerate `convex/_generated/*` with strongly typed API references.
+- **Convex setup required:** Run `npx convex dev` before starting the app. The `convex/_generated/*` files are scaffold placeholders until Convex generates strongly typed API references. Without this step, call features will fail at runtime.
 - Presence heartbeat runs every 30 seconds through `usePresence`.
 - Invite acceptance enforces the free-tier max of 20 contacts at mutation level.

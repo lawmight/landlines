@@ -5,13 +5,15 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 /**
  * Provides call lifecycle helpers backed by Convex call-state documents.
+ * Requires `npx convex dev` to have been run so generated API references exist.
  */
 export function useCall(): {
-  incomingCall: any;
-  recentCalls: any[] | undefined;
+  incomingCall: { _id: Id<"calls">; type: "voice" | "video"; callerClerkId: string; roomName: string } | null | undefined;
+  recentCalls: unknown[] | undefined;
   isWorking: boolean;
   initiateCall: (calleeClerkId: string, type: "voice" | "video") => Promise<{ callId: string; roomName: string }>;
   acceptCall: (callId: string) => Promise<void>;
@@ -76,7 +78,7 @@ export function useCall(): {
 
     setIsWorking(true);
     try {
-      await acceptCallMutation({ callId: callId as any, calleeClerkId: user.id });
+      await acceptCallMutation({ callId: callId as Id<"calls">, calleeClerkId: user.id });
     } finally {
       setIsWorking(false);
     }
@@ -90,7 +92,7 @@ export function useCall(): {
       throw new Error("You must be signed in to ignore a call.");
     }
 
-    await ignoreCallMutation({ callId: callId as any, calleeClerkId: user.id });
+    await ignoreCallMutation({ callId: callId as Id<"calls">, calleeClerkId: user.id });
   };
 
   /**
@@ -102,7 +104,7 @@ export function useCall(): {
     }
 
     await endCallMutation({
-      callId: callId as any,
+      callId: callId as Id<"calls">,
       actorClerkId: user.id,
       reason
     });
@@ -117,7 +119,7 @@ export function useCall(): {
     }
 
     await failCallMutation({
-      callId: callId as any,
+      callId: callId as Id<"calls">,
       actorClerkId: user.id,
       reason
     });

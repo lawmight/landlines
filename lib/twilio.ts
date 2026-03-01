@@ -10,14 +10,19 @@ export type TwilioTokenPayload = z.infer<typeof tokenSchema>;
 
 /**
  * Requests Twilio voice/video access tokens from the signaling server.
+ * @param mode - "voice" skips Video room creation; "video" ensures the room exists.
  */
-export async function fetchTwilioTokens(identity: string, roomName: string): Promise<TwilioTokenPayload> {
+export async function fetchTwilioTokens(
+  identity: string,
+  roomName: string,
+  mode: "voice" | "video" = "video"
+): Promise<TwilioTokenPayload> {
   const response = await fetch(`${process.env.NEXT_PUBLIC_SIGNALING_BASE_URL}/twilio/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ identity, roomName })
+    body: JSON.stringify({ identity, roomName, mode })
   });
 
   if (!response.ok) {

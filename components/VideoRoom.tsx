@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import type { LocalTrack, Participant, RemoteTrack, Room } from "twilio-video";
+import type {
+  LocalTrack,
+  LocalTrackPublication,
+  Participant,
+  RemoteTrack,
+  RemoteTrackPublication,
+  Room
+} from "twilio-video";
 import { PhoneOff, Wifi, WifiOff } from "lucide-react";
 
 import { useCall } from "@/hooks/useCall";
@@ -64,7 +71,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
       }
 
       participant.tracks.forEach((publication) => {
-        const publicationTrack = (publication as any).track as LocalTrack | RemoteTrack | undefined;
+        const publicationTrack = (publication as LocalTrackPublication | RemoteTrackPublication).track;
         if (publicationTrack) {
           attachTrackToContainer(publicationTrack, container);
         }
@@ -97,7 +104,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
       setError(null);
 
       try {
-        const { videoToken, roomName } = await fetchTwilioTokens(user.id, roomId);
+        const { videoToken, roomName } = await fetchTwilioTokens(user.id, roomId, mode);
         const Video = await import("twilio-video");
 
         let localTracks: LocalTrack[] = [];
@@ -136,7 +143,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
         const localContainer = localMediaRef.current;
         if (localContainer) {
           nextRoom.localParticipant.tracks.forEach((publication) => {
-            const publicationTrack = (publication as any).track as LocalTrack | RemoteTrack | undefined;
+            const publicationTrack = (publication as LocalTrackPublication).track;
             if (publicationTrack) {
               attachTrackToContainer(publicationTrack, localContainer);
             }
@@ -153,17 +160,16 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
 
         nextRoom.on("participantDisconnected", (participant) => {
           participant.tracks.forEach((publication) => {
-            const publicationTrack = (publication as any).track as LocalTrack | RemoteTrack | undefined;
+            const publicationTrack = (publication as RemoteTrackPublication).track;
             if (publicationTrack && "detach" in publicationTrack) {
               publicationTrack.detach().forEach((el: Element) => el.remove());
             }
           });
         });
 
-        nextRoom.on("reconnecting", async () => {
+        nextRoom.on("reconnecting", () => {
           setNetworkState("poor");
           setError("Poor internet detected. Trying to reconnect...");
-          await failCall(roomId, "network_reconnecting");
         });
 
         nextRoom.on("reconnected", () => {
