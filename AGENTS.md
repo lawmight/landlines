@@ -30,3 +30,5 @@ All credentials live in `.env.local`. Clerk and Convex keys must be present for 
 - The ESLint config uses flat config format (`eslint.config.mjs`), so the `--ext` flag is needed when running ESLint from the CLI.
 - Next.js may warn about `experimental.typedRoutes` being moved to `typedRoutes` — this is cosmetic and does not affect functionality.
 - The signaling server exposes a `GET /health` endpoint that returns `{"ok":true}`.
+- The `TWILIO_VIDEO_ROOM_TYPE` env var defaults to a legacy value that Twilio no longer supports. Video-mode token requests (`mode: "video"`) will fail with "Legacy room type no longer supported" unless you override it with a supported type (e.g. `group` or `go`). Voice-mode token requests work regardless.
+- Clerk sign-up requires real email verification in development mode — there is no automatic bypass code visible in the UI or console.
