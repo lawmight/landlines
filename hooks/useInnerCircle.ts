@@ -32,7 +32,9 @@ export function useInnerCircle(): {
       return [];
     }
 
-    const presenceMap = new Map((presenceRows ?? []).map((row: { userClerkId: string; state: "home" | "away" }) => [row.userClerkId, row.state]));
+    const presenceMap = new Map<string, "home" | "away">(
+      (presenceRows ?? []).map((row) => [row.userClerkId, row.state as "home" | "away"])
+    );
 
     return (members as any[]).map((member: any) => ({
       ...member,
