@@ -30,3 +30,5 @@ All credentials live in `.env.local`. Clerk and Convex keys must be present for 
 - The ESLint config uses flat config format (`eslint.config.mjs`), so the `--ext` flag is needed when running ESLint from the CLI.
 - Next.js may warn about `experimental.typedRoutes` being moved to `typedRoutes` — this is cosmetic and does not affect functionality.
 - The signaling server exposes a `GET /health` endpoint that returns `{"ok":true}`.
+- Clerk signup in Development mode requires email verification (6-digit code). Creating a new test account interactively requires access to the target email inbox.
+- Sending invites requires the user's profile to exist in the Convex `users` table. A newly created Clerk account that hasn't been synced to Convex will get `"Inviter must exist before sending invites"`. This sync happens via Convex's auth integration when `npx convex dev` is running.
