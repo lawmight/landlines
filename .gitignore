@@ -7,3 +7,5 @@ dist
 coverage
 *.log
 .cursor
+.vercel
+.env*.local
