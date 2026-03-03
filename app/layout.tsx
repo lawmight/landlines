@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import Script from "next/script";
 
 import { Providers } from "@/components/providers";
@@ -7,6 +8,20 @@ import { Toaster } from "@/components/ui/sonner";
 import { env } from "@/lib/env";
 
 import "./globals.css";
+
+const displayFont = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400"],
+  variable: "--font-display",
+  display: "swap"
+});
+
+const bodyFont = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-body",
+  display: "swap"
+});
 
 const siteUrl = "https://landlines-ten.vercel.app";
 
@@ -40,7 +55,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
-        <body className="min-h-screen antialiased">
+        <body className={`${displayFont.variable} ${bodyFont.variable} min-h-screen antialiased`}>
           <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50">
             Skip to main content
           </a>
