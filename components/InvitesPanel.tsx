@@ -88,7 +88,7 @@ export function InvitesPanel(): React.JSX.Element {
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Received invites</CardTitle>
+          <CardTitle className="display-serif text-2xl font-normal tracking-normal">Received invites</CardTitle>
           <CardDescription>Accept to allow this person to reach you directly.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -122,7 +122,7 @@ export function InvitesPanel(): React.JSX.Element {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sent invites</CardTitle>
+          <CardTitle className="display-serif text-2xl font-normal tracking-normal">Sent invites</CardTitle>
           <CardDescription>Pending invites can be revoked at any time.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

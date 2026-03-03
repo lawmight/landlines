@@ -17,7 +17,7 @@ export function InnerCircle(): React.JSX.Element {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="display-serif flex items-center gap-2 text-2xl font-normal tracking-normal">
           <Phone className="h-5 w-5" />
           Inner Circle
         </CardTitle>

@@ -121,7 +121,7 @@ export function InviteModal(): React.JSX.Element {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4 py-8"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-[#1A1714]/40 px-4 py-8"
       onClick={() => setIsOpen(false)}
     >
       <div

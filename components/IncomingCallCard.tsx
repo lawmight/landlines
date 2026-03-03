@@ -42,7 +42,7 @@ export function IncomingCallCard(): React.JSX.Element | null {
   };
 
   return (
-    <Card className="border-[var(--primary)]/50">
+    <Card className="incoming-call-pulse border-[var(--primary)]/50">
       <CardHeader>
         <CardTitle>Incoming call</CardTitle>
         <CardDescription>
