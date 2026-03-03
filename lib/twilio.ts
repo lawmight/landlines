@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { env } from "@/lib/env";
+
 const tokenSchema = z.object({
   voiceToken: z.string(),
   videoToken: z.string(),
@@ -17,7 +19,7 @@ export async function fetchTwilioTokens(
   roomName: string,
   mode: "voice" | "video" = "video"
 ): Promise<TwilioTokenPayload> {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_SIGNALING_BASE_URL}/twilio/token`, {
+  const response = await fetch(`${env.NEXT_PUBLIC_SIGNALING_BASE_URL}/twilio/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

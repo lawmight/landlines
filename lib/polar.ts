@@ -1,12 +1,12 @@
 import { Polar } from "@polar-sh/sdk";
 
-const polarAccessToken = process.env.POLAR_ACCESS_TOKEN;
+import { env } from "@/lib/env";
 
-if (!polarAccessToken) {
+if (!env.POLAR_ACCESS_TOKEN) {
   throw new Error("POLAR_ACCESS_TOKEN is required.");
 }
 
 export const polar = new Polar({
-  accessToken: polarAccessToken,
+  accessToken: env.POLAR_ACCESS_TOKEN,
   server: "sandbox"
 });
