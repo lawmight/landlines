@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { Check, Clock3, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 /**
  * Invite inbox and outbox management panel.
+ * Uses Convex auth so the query runs only after the client has a validated token.
  */
 export function InvitesPanel(): React.JSX.Element {
   const { user } = useUser();
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const { isAuthenticated } = useConvexAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const acceptInvite = useMutation(api.invites.acceptInvite);
   const ignoreInvite = useMutation(api.invites.ignoreInvite);
@@ -24,9 +27,8 @@ export function InvitesPanel(): React.JSX.Element {
 
   const inviteState = useQuery(
     api.invites.listInvitesForUser,
-    user
+    isAuthenticated && user
       ? {
-          userClerkId: user.id,
           email: user.primaryEmailAddress?.emailAddress,
           username: user.username ?? undefined
         }
@@ -41,11 +43,14 @@ export function InvitesPanel(): React.JSX.Element {
     if (!user) {
       return;
     }
+    setIsSubmitting(true);
     try {
-      await acceptInvite({ inviteId: inviteId as any, inviteeClerkId: user.id });
-      setFeedback("Invite accepted.");
+      await acceptInvite({ inviteId: inviteId as any });
+      toast.success("Invite accepted.");
     } catch (caught) {
-      setFeedback(caught instanceof Error ? caught.message : "Could not accept invite.");
+      toast.error(caught instanceof Error ? caught.message : "Could not accept invite.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -53,11 +58,14 @@ export function InvitesPanel(): React.JSX.Element {
     if (!user) {
       return;
     }
+    setIsSubmitting(true);
     try {
-      await ignoreInvite({ inviteId: inviteId as any, inviteeClerkId: user.id });
-      setFeedback("Invite ignored.");
+      await ignoreInvite({ inviteId: inviteId as any });
+      toast.success("Invite ignored.");
     } catch (caught) {
-      setFeedback(caught instanceof Error ? caught.message : "Could not ignore invite.");
+      toast.error(caught instanceof Error ? caught.message : "Could not ignore invite.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -65,11 +73,14 @@ export function InvitesPanel(): React.JSX.Element {
     if (!user) {
       return;
     }
+    setIsSubmitting(true);
     try {
-      await revokeInvite({ inviteId: inviteId as any, inviterClerkId: user.id });
-      setFeedback("Invite revoked.");
+      await revokeInvite({ inviteId: inviteId as any });
+      toast.success("Invite revoked.");
     } catch (caught) {
-      setFeedback(caught instanceof Error ? caught.message : "Could not revoke invite.");
+      toast.error(caught instanceof Error ? caught.message : "Could not revoke invite.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -95,11 +106,11 @@ export function InvitesPanel(): React.JSX.Element {
                 </Badge>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => onAccept(String(invite._id))}>
+                <Button size="sm" onClick={() => onAccept(String(invite._id))} disabled={isSubmitting}>
                   <Check className="h-4 w-4" />
                   Accept
                 </Button>
-                <Button size="sm" variant="destructive" onClick={() => onIgnore(String(invite._id))}>
+                <Button size="sm" variant="destructive" onClick={() => onIgnore(String(invite._id))} disabled={isSubmitting}>
                   <X className="h-4 w-4" />
                   Ignore
                 </Button>
@@ -130,15 +141,13 @@ export function InvitesPanel(): React.JSX.Element {
                   Pending
                 </Badge>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => onRevoke(String(invite._id))}>
+              <Button size="sm" variant="ghost" onClick={() => onRevoke(String(invite._id))} disabled={isSubmitting}>
                 Revoke invite
               </Button>
             </div>
           ))}
         </CardContent>
       </Card>
-
-      {feedback ? <p className="text-sm text-[var(--muted-foreground)]">{feedback}</p> : null}
     </div>
   );
 }

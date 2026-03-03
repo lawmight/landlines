@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { Phone, PhoneOff, Video } from "lucide-react";
+import { toast } from "sonner";
 
 import { useCall } from "@/hooks/useCall";
+import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -19,12 +21,24 @@ export function IncomingCallCard(): React.JSX.Element | null {
   }
 
   const onAccept = async (): Promise<void> => {
-    await acceptCall(String(incomingCall._id));
-    router.push(`/call/${String(incomingCall._id)}?mode=${incomingCall.type}`);
+    try {
+      await acceptCall(String(incomingCall._id));
+      trackEvent("call_accepted", { mode: incomingCall.type });
+      toast.success("Call accepted.");
+      router.push(`/call/${String(incomingCall._id)}?mode=${incomingCall.type}`);
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "Could not accept call.");
+    }
   };
 
   const onIgnore = async (): Promise<void> => {
-    await ignoreCall(String(incomingCall._id));
+    try {
+      await ignoreCall(String(incomingCall._id));
+      trackEvent("call_ignored", { mode: incomingCall.type });
+      toast.success("Call ignored.");
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "Could not ignore call.");
+    }
   };
 
   return (

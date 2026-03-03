@@ -12,9 +12,11 @@ import type {
   Room
 } from "twilio-video";
 import { PhoneOff, Wifi, WifiOff } from "lucide-react";
+import { toast } from "sonner";
 
 import { useCall } from "@/hooks/useCall";
 import { usePresence } from "@/hooks/usePresence";
+import { trackEvent } from "@/lib/analytics";
 import { fetchTwilioTokens, mapMediaError } from "@/lib/twilio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +40,6 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
 
   const [room, setRoom] = useState<Room | null>(null);
   const [status, setStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
   const [networkState, setNetworkState] = useState<"good" | "poor">("good");
 
   usePresence(user?.id, roomId);
@@ -101,7 +102,6 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
 
     const connectRoom = async (): Promise<void> => {
       setStatus("connecting");
-      setError(null);
 
       try {
         const { videoToken, roomName } = await fetchTwilioTokens(user.id, roomId, mode);
@@ -117,7 +117,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
             localTracksToStop.push(...localTracks);
           } catch (caught) {
             const message = mapMediaError(caught);
-            setError(message);
+            toast.error(message);
             setStatus("error");
             await failCall(roomId, `media_error:${message}`);
             return;
@@ -169,25 +169,25 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
 
         nextRoom.on("reconnecting", () => {
           setNetworkState("poor");
-          setError("Poor internet detected. Trying to reconnect...");
+          toast.warning("Poor internet detected. Trying to reconnect...");
         });
 
         nextRoom.on("reconnected", () => {
           setNetworkState("good");
-          setError(null);
+          toast.success("Connection recovered.");
         });
 
         nextRoom.on("disconnected", async (_, disconnectError) => {
           clearMediaElements();
           if (disconnectError) {
             setStatus("error");
-            setError("Call disconnected due to network instability.");
+            toast.error("Call disconnected due to network instability.");
             await failCall(roomId, "network_disconnected");
           }
         });
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : "Failed to join room.";
-        setError(message);
+        toast.error(message);
         setStatus("error");
         await failCall(roomId, `connect_error:${message}`);
       }
@@ -209,6 +209,8 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
   const handleLeave = async (): Promise<void> => {
     room?.disconnect();
     await endCall(roomId, "left_room");
+    trackEvent("call_ended", { mode });
+    toast.success("Call ended.");
     router.push("/dashboard");
   };
 
@@ -228,8 +230,6 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
         <p className="text-sm text-[var(--muted-foreground)]">
           {status === "connecting" ? "Connecting..." : status === "connected" ? "Connected." : "Waiting for connection..."}
         </p>
-
-        {error ? <p className="rounded-md border border-[var(--danger)]/40 bg-[var(--danger)]/10 p-3 text-sm text-[var(--danger)]">{error}</p> : null}
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-md border border-[var(--border)] p-2">

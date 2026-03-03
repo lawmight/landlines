@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { PhoneOff, Wifi, WifiOff } from "lucide-react";
+import { toast } from "sonner";
 
 import { useCall } from "@/hooks/useCall";
 import { usePresence } from "@/hooks/usePresence";
+import { trackEvent } from "@/lib/analytics";
 import { fetchTwilioTokens } from "@/lib/twilio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,7 +42,6 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
 
   const [status, setStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
   const [networkState, setNetworkState] = useState<"good" | "poor">("good");
-  const [error, setError] = useState<string | null>(null);
 
   const deviceRef = useRef<VoiceDevice | null>(null);
   const connectionRef = useRef<VoiceConnection | null>(null);
@@ -56,7 +57,6 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
 
     const connectVoice = async (): Promise<void> => {
       setStatus("connecting");
-      setError(null);
 
       try {
         const tokens = await fetchTwilioTokens(user.id, roomId, "voice");
@@ -76,7 +76,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
             device.updateToken(refreshedTokens.voiceToken);
           } catch (caught) {
             const message = caught instanceof Error ? caught.message : "Token refresh failed.";
-            setError(message);
+            toast.error(message);
             await failCall(roomId, `voice_token_refresh_error:${message}`);
           }
         });
@@ -84,7 +84,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
         device.on("error", async (deviceError: { message?: string }) => {
           const message = deviceError.message ?? "Voice device error.";
           setStatus("error");
-          setError(message);
+          toast.error(message);
           await failCall(roomId, `voice_device_error:${message}`);
         });
 
@@ -104,12 +104,12 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
 
         connection.on("warning", () => {
           setNetworkState("poor");
-          setError("Poor internet detected. Audio quality may degrade.");
+          toast.warning("Poor internet detected. Audio quality may degrade.");
         });
 
         connection.on("warning-cleared", () => {
           setNetworkState("good");
-          setError(null);
+          toast.success("Connection recovered.");
         });
 
         connection.on("disconnect", () => {
@@ -118,7 +118,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : "Unable to connect voice call.";
         setStatus("error");
-        setError(message);
+        toast.error(message);
         await failCall(roomId, `voice_connect_error:${message}`);
       }
     };
@@ -137,6 +137,8 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
     connectionRef.current?.disconnect();
     deviceRef.current?.disconnectAll();
     await endCall(roomId, "left_room");
+    trackEvent("call_ended", { mode: "voice" });
+    toast.success("Call ended.");
     router.push("/dashboard");
   };
 
@@ -156,7 +158,6 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
         <p className="text-sm text-[var(--muted-foreground)]">
           {status === "connecting" ? "Connecting voice..." : status === "connected" ? "Connected." : "Waiting..."}
         </p>
-        {error ? <p className="rounded-md border border-[var(--danger)]/40 bg-[var(--danger)]/10 p-3 text-sm text-[var(--danger)]">{error}</p> : null}
       </CardContent>
       <CardFooter className="justify-end">
         <Button variant="destructive" onClick={handleHangup}>

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { MailPlus, UserRoundPlus } from "lucide-react";
 import { useMutation } from "convex/react";
+import { toast } from "sonner";
 
 import { api } from "@/convex/_generated/api";
+import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,40 +18,93 @@ import { Label } from "@/components/ui/label";
  */
 export function InviteModal(): React.JSX.Element {
   const { user } = useUser();
-  const sendInvite = useMutation(api.invites.sendInvite);
+  const sendInviteRef = (api as any)?.invites?.sendInvite;
+  const fallbackMutationRef = (api as any).invites.expireStaleInvites;
+  const sendInvite = useMutation(sendInviteRef ?? fallbackMutationRef);
 
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
-  const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const modalNode = modalRef.current;
+    if (!modalNode) {
+      return;
+    }
+
+    const focusableSelectors =
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const focusable = Array.from(
+      modalNode.querySelectorAll<HTMLElement>(focusableSelectors)
+    );
+
+    focusable[0]?.focus();
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || focusable.length === 0) {
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+
+    modalNode.addEventListener("keydown", onKeyDown);
+    return () => {
+      modalNode.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen]);
 
   const submitInvite = async (): Promise<void> => {
     if (!user) {
-      setFeedback("You must be signed in.");
+      toast.error("You must be signed in.");
       return;
     }
 
     if (!email.trim() && !username.trim()) {
-      setFeedback("Provide at least an email or username.");
+      toast.error("Provide at least an email or username.");
+      return;
+    }
+
+    if (!sendInviteRef) {
+      toast.error("Invites are temporarily unavailable. Run `npx convex dev` to regenerate API references.");
       return;
     }
 
     setIsSubmitting(true);
-    setFeedback(null);
 
     try {
       await sendInvite({
-        inviterClerkId: user.id,
         inviteeEmail: email.trim() || undefined,
         inviteeUsername: username.trim() || undefined
       });
       setEmail("");
       setUsername("");
-      setFeedback("Invite sent.");
+      trackEvent("invite_sent");
+      toast.success("Invite sent.");
+      setIsOpen(false);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Failed to send invite.";
-      setFeedback(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -65,41 +120,54 @@ export function InviteModal(): React.JSX.Element {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Invite someone</CardTitle>
-        <CardDescription>They must accept before they appear in your inner circle.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="invite-email">Email</Label>
-          <Input
-            id="invite-email"
-            placeholder="friend@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="invite-username">Username</Label>
-          <Input
-            id="invite-username"
-            placeholder="friend_username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </div>
-        {feedback ? <p className="text-sm text-[var(--muted-foreground)]">{feedback}</p> : null}
-      </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button onClick={submitInvite} disabled={isSubmitting}>
-          <MailPlus className="h-4 w-4" />
-          Send invite
-        </Button>
-      </CardFooter>
-    </Card>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4 py-8"
+      onClick={() => setIsOpen(false)}
+    >
+      <div
+        aria-labelledby="invite-modal-title"
+        aria-modal="true"
+        className="w-full max-w-xl"
+        onClick={(event) => event.stopPropagation()}
+        ref={modalRef}
+        role="dialog"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle id="invite-modal-title">Invite someone</CardTitle>
+            <CardDescription>They must accept before they appear in your inner circle.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="invite-email">Email</Label>
+              <Input
+                id="invite-email"
+                placeholder="friend@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invite-username">Username</Label>
+              <Input
+                id="invite-username"
+                placeholder="friend_username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button onClick={submitInvite} disabled={isSubmitting}>
+              <MailPlus className="h-4 w-4" />
+              Send invite
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
   );
 }
