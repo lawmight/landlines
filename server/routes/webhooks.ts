@@ -1,38 +1,83 @@
-import { Router } from "express";
-import { z } from "zod";
+import { Router, type Request } from "express";
+import rateLimit from "express-rate-limit";
 
-const voiceWebhookSchema = z.object({
-  CallSid: z.string().optional(),
-  CallStatus: z.string().optional(),
-  To: z.string().optional(),
-  From: z.string().optional()
-});
-
-const videoWebhookSchema = z.object({
-  StatusCallbackEvent: z.string().optional(),
-  RoomName: z.string().optional(),
-  RoomSid: z.string().optional(),
-  ParticipantIdentity: z.string().optional()
-});
+import { logger } from "../../lib/logger";
+import {
+  mapVideoWebhookToMutation,
+  mapVoiceWebhookToMutation,
+  videoWebhookSchema,
+  voiceWebhookSchema
+} from "../../lib/twilio-webhook-events";
+import { forwardToConvexMutation } from "../lib/convexWebhook";
+import { serverEnv } from "../lib/env";
+import { validateTwilioSignature } from "../lib/validateTwilioSignature";
 
 export const webhookRouter = Router();
 
-webhookRouter.post("/twilio/voice-status", (req, res) => {
-  const parsed = voiceWebhookSchema.safeParse(req.body);
+const webhookRateLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many webhook requests." }
+});
+
+function normalizePayload(payload: Record<string, unknown> | undefined): Record<string, string> {
+  if (!payload) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(payload).map(([key, value]) => [key, Array.isArray(value) ? value.join(",") : String(value)])
+  );
+}
+
+async function forwardMutationIfPresent(
+  mutation: ReturnType<typeof mapVoiceWebhookToMutation> | ReturnType<typeof mapVideoWebhookToMutation>
+): Promise<void> {
+  if (!mutation) {
+    return;
+  }
+  await forwardToConvexMutation(mutation);
+}
+
+webhookRouter.post("/twilio/voice-status", webhookRateLimiter, async (req, res) => {
+  const isValid = validateTwilioSignature(req as Request & { rawBody?: string }, serverEnv.TWILIO_AUTH_TOKEN);
+  if (!isValid) {
+    return res.status(401).json({ error: "Invalid Twilio signature." });
+  }
+
+  const parsed = voiceWebhookSchema.safeParse(normalizePayload(req.body as Record<string, unknown>));
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid voice webhook payload." });
   }
 
-  // TODO: Forward voice status updates to Convex `calls` mutations.
+  try {
+    await forwardMutationIfPresent(mapVoiceWebhookToMutation(parsed.data));
+  } catch (error) {
+    logger.error({ error, payload: parsed.data }, "Failed to forward Twilio voice webhook to Convex.");
+    return res.status(502).json({ error: "Failed to persist call status update." });
+  }
+
   return res.status(200).json({ ok: true });
 });
 
-webhookRouter.post("/twilio/video-status", (req, res) => {
-  const parsed = videoWebhookSchema.safeParse(req.body);
+webhookRouter.post("/twilio/video-status", webhookRateLimiter, async (req, res) => {
+  const isValid = validateTwilioSignature(req as Request & { rawBody?: string }, serverEnv.TWILIO_AUTH_TOKEN);
+  if (!isValid) {
+    return res.status(401).json({ error: "Invalid Twilio signature." });
+  }
+
+  const parsed = videoWebhookSchema.safeParse(normalizePayload(req.body as Record<string, unknown>));
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid video webhook payload." });
   }
 
-  // TODO: Forward video status updates to Convex `calls` mutations.
+  try {
+    await forwardMutationIfPresent(mapVideoWebhookToMutation(parsed.data));
+  } catch (error) {
+    logger.error({ error, payload: parsed.data }, "Failed to forward Twilio video webhook to Convex.");
+    return res.status(502).json({ error: "Failed to persist call status update." });
+  }
+
   return res.status(200).json({ ok: true });
 });

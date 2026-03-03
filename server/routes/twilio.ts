@@ -1,17 +1,20 @@
 import { Router } from "express";
-import { z } from "zod";
+import rateLimit from "express-rate-limit";
 
+import { tokenRequestSchema } from "../lib/schemas";
 import { createVideoToken, createVoiceToken, ensureVideoRoom } from "../lib/twilioClient";
-
-const tokenRequestSchema = z.object({
-  identity: z.string().min(1).max(121).regex(/^[A-Za-z0-9_]+$/, "Identity must be alphanumeric or underscore."),
-  roomName: z.string().min(1).max(120),
-  mode: z.enum(["voice", "video"]).default("video")
-});
 
 export const twilioRouter = Router();
 
-twilioRouter.post("/token", async (req, res) => {
+const tokenRateLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many token requests. Try again in a minute." }
+});
+
+twilioRouter.post("/token", tokenRateLimiter, async (req, res) => {
   const parseResult = tokenRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json({

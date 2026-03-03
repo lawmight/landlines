@@ -1,22 +1,13 @@
 import twilio from "twilio";
 
-/**
- * Loads a required environment variable and throws when missing.
- */
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
+import { serverEnv, serverTwilioApiKeySecret, serverTwilioApiKeySid } from "./env";
 
-const accountSid = requireEnv("TWILIO_ACCOUNT_SID");
-const authToken = requireEnv("TWILIO_AUTH_TOKEN");
-const apiKey = requireEnv("TWILIO_API_KEY");
-const apiSecret = requireEnv("TWILIO_API_SECRET");
-const twimlAppSid = requireEnv("TWILIO_TWIML_APP_SID");
-const roomType = process.env.TWILIO_VIDEO_ROOM_TYPE ?? "group-small";
+const accountSid = serverEnv.TWILIO_ACCOUNT_SID;
+const authToken = serverEnv.TWILIO_AUTH_TOKEN;
+const apiKey = serverTwilioApiKeySid();
+const apiSecret = serverTwilioApiKeySecret();
+const twimlAppSid = serverEnv.TWILIO_TWIML_APP_SID;
+const roomType = serverEnv.TWILIO_VIDEO_ROOM_TYPE ?? "group-small";
 
 const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;
