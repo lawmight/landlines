@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Home } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
@@ -27,6 +28,12 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="secondary" asChild>
+            <Link href="/" className="flex items-center gap-2">
+              <Home className="h-4 w-4" aria-hidden />
+              Home
+            </Link>
+          </Button>
           <InviteModal />
           <Button variant="secondary" asChild>
             <Link href="/settings">Settings</Link>
