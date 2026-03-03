@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -22,10 +22,11 @@ export function useCall(): {
   failCall: (callId: string, reason: string) => Promise<void>;
 } {
   const { user } = useUser();
+  const { isAuthenticated } = useConvexAuth();
   const [isWorking, setIsWorking] = useState(false);
 
-  const incomingCall = useQuery(api.calls.getIncomingCall, user ? { calleeClerkId: user.id } : "skip");
-  const recentCalls = useQuery(api.calls.listCallsForUser, user ? { userClerkId: user.id } : "skip");
+  const incomingCall = useQuery(api.calls.getIncomingCall, user && isAuthenticated ? {} : "skip");
+  const recentCalls = useQuery(api.calls.listCallsForUser, user && isAuthenticated ? {} : "skip");
 
   const initiateCallMutation = useMutation(api.calls.initiateCall);
   const acceptCallMutation = useMutation(api.calls.acceptCall);
@@ -35,6 +36,10 @@ export function useCall(): {
   const markMissedMutation = useMutation(api.calls.markMissedRingingCalls);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
     const timer = window.setInterval(() => {
       void markMissedMutation({});
     }, 10_000);
@@ -42,7 +47,7 @@ export function useCall(): {
     return () => {
       window.clearInterval(timer);
     };
-  }, [markMissedMutation]);
+  }, [isAuthenticated, markMissedMutation]);
 
   /**
    * Starts a call and returns the created call and room IDs.
@@ -55,7 +60,6 @@ export function useCall(): {
     setIsWorking(true);
     try {
       const response = await initiateCallMutation({
-        callerClerkId: user.id,
         calleeClerkId,
         type
       });
@@ -78,7 +82,7 @@ export function useCall(): {
 
     setIsWorking(true);
     try {
-      await acceptCallMutation({ callId: callId as Id<"calls">, calleeClerkId: user.id });
+      await acceptCallMutation({ callId: callId as Id<"calls"> });
     } finally {
       setIsWorking(false);
     }
@@ -92,7 +96,7 @@ export function useCall(): {
       throw new Error("You must be signed in to ignore a call.");
     }
 
-    await ignoreCallMutation({ callId: callId as Id<"calls">, calleeClerkId: user.id });
+    await ignoreCallMutation({ callId: callId as Id<"calls"> });
   };
 
   /**
@@ -105,7 +109,6 @@ export function useCall(): {
 
     await endCallMutation({
       callId: callId as Id<"calls">,
-      actorClerkId: user.id,
       reason
     });
   };
@@ -120,7 +123,6 @@ export function useCall(): {
 
     await failCallMutation({
       callId: callId as Id<"calls">,
-      actorClerkId: user.id,
       reason
     });
   };

@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 
 import { api } from "@/convex/_generated/api";
 
 /**
  * Loads accepted inner-circle members enriched with live presence.
+ * Uses Convex auth state so the query runs only after the Convex client has
+ * the validated token (avoids Unauthorized when Clerk user is ready before token).
  */
 export function useInnerCircle(): {
   members: Array<{
@@ -19,9 +20,9 @@ export function useInnerCircle(): {
   }>;
   isLoading: boolean;
 } {
-  const { user } = useUser();
+  const { isAuthenticated } = useConvexAuth();
 
-  const members = useQuery(api.users.listInnerCircle, user ? { viewerClerkId: user.id } : "skip");
+  const members = useQuery(api.users.listInnerCircle, isAuthenticated ? {} : "skip");
   const presenceRows = useQuery(
     api.presence.listByUserIds,
     members ? { userClerkIds: (members as any[]).map((member: any) => member.clerkId) } : "skip"

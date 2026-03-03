@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 
 import { api } from "@/convex/_generated/api";
 
@@ -17,6 +17,7 @@ export function usePresence(userClerkId?: string, currentCallRoom?: string): {
   state: "home" | "away";
   networkQuality: NetworkQuality;
 } {
+  const { isAuthenticated } = useConvexAuth();
   const heartbeat = useMutation(api.presence.heartbeat);
   const markAway = useMutation(api.presence.markAway);
   const snapshot = useQuery(api.presence.getPresence, userClerkId ? { userClerkId } : "skip");
@@ -37,13 +38,12 @@ export function usePresence(userClerkId?: string, currentCallRoom?: string): {
   }, []);
 
   useEffect(() => {
-    if (!userClerkId) {
+    if (!userClerkId || !isAuthenticated) {
       return;
     }
 
     const sendHeartbeat = (): void => {
       void heartbeat({
-        userClerkId,
         currentCallRoom,
         networkQuality: inferredNetworkQuality
       });
@@ -54,9 +54,9 @@ export function usePresence(userClerkId?: string, currentCallRoom?: string): {
 
     return () => {
       window.clearInterval(timer);
-      void markAway({ userClerkId });
+      void markAway({});
     };
-  }, [currentCallRoom, heartbeat, inferredNetworkQuality, markAway, userClerkId]);
+  }, [currentCallRoom, heartbeat, inferredNetworkQuality, isAuthenticated, markAway, userClerkId]);
 
   return {
     isOnline: snapshot?.isOnline ?? false,
