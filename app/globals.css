@@ -128,3 +128,15 @@ body {
   border-color: var(--color-mid);
   color: var(--color-ink);
 }
+
+.landing-btn-primary {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.landing-btn-primary:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff8f2;
+}
