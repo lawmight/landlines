@@ -1,20 +1,38 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 
 const RING_TIMEOUT_MS = 45_000;
+
+async function requireAuthenticatedClerkId(ctx: { auth: { getUserIdentity: () => Promise<any> } }): Promise<string> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity?.subject) {
+    throw new Error("Unauthorized");
+  }
+  return identity.subject as string;
+}
+
+async function findLatestCallByRoomName(ctx: { db: any }, roomName: string): Promise<any | null> {
+  const allCalls = await ctx.db.query("calls").collect();
+  return (
+    allCalls
+      .filter((call: any) => call.roomName === roomName)
+      .sort((a: any, b: any) => b.createdAt - a.createdAt)[0] ?? null
+  );
+}
 
 /**
  * Creates a new call request and sets it to ringing.
  */
 export const initiateCall = mutation({
   args: {
-    callerClerkId: v.string(),
     calleeClerkId: v.string(),
     type: v.union(v.literal("voice"), v.literal("video"))
   },
   handler: async (ctx, args) => {
-    if (args.callerClerkId === args.calleeClerkId) {
+    const callerClerkId = await requireAuthenticatedClerkId(ctx);
+
+    if (callerClerkId === args.calleeClerkId) {
       throw new Error("Cannot call yourself.");
     }
 
@@ -22,7 +40,7 @@ export const initiateCall = mutation({
     const permissionLinks = allInvites.filter(
       (invite: any) => invite.inviterClerkId === args.calleeClerkId && invite.status === "accepted"
     );
-    const canReach = permissionLinks.some((invite) => invite.inviteeClerkId === args.callerClerkId);
+    const canReach = permissionLinks.some((invite) => invite.inviteeClerkId === callerClerkId);
 
     if (!canReach) {
       throw new Error("You can only reach users who explicitly accepted you in their inner circle.");
@@ -33,7 +51,7 @@ export const initiateCall = mutation({
       roomName: "pending",
       type: args.type,
       status: "ringing",
-      callerClerkId: args.callerClerkId,
+      callerClerkId,
       calleeClerkId: args.calleeClerkId,
       createdAt: now,
       ringingUntil: now + RING_TIMEOUT_MS
@@ -50,13 +68,12 @@ export const initiateCall = mutation({
  * Returns the current incoming ringing call for a callee.
  */
 export const getIncomingCall = query({
-  args: {
-    calleeClerkId: v.string()
-  },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const calleeClerkId = await requireAuthenticatedClerkId(ctx);
     const allCalls = await ctx.db.query("calls").collect();
     const ringing = allCalls.filter(
-      (call: any) => call.calleeClerkId === args.calleeClerkId && call.status === "ringing"
+      (call: any) => call.calleeClerkId === calleeClerkId && call.status === "ringing"
     );
 
     const now = Date.now();
@@ -72,21 +89,20 @@ export const getIncomingCall = query({
  * Returns recent calls for a user sorted newest-first.
  */
 export const listCallsForUser = query({
-  args: {
-    userClerkId: v.string()
-  },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userClerkId = await requireAuthenticatedClerkId(ctx);
     const allCalls = await ctx.db.query("calls").collect();
-    const callerCalls = allCalls.filter((call: any) => call.callerClerkId === args.userClerkId && call.status === "active");
-    const calleeCalls = allCalls.filter((call: any) => call.calleeClerkId === args.userClerkId && call.status === "active");
+    const callerCalls = allCalls.filter((call: any) => call.callerClerkId === userClerkId && call.status === "active");
+    const calleeCalls = allCalls.filter((call: any) => call.calleeClerkId === userClerkId && call.status === "active");
     const ringingCalls = allCalls.filter(
-      (call: any) => call.calleeClerkId === args.userClerkId && call.status === "ringing"
+      (call: any) => call.calleeClerkId === userClerkId && call.status === "ringing"
     );
     const completedCallerCalls = allCalls.filter(
-      (call: any) => call.callerClerkId === args.userClerkId && call.status === "ended"
+      (call: any) => call.callerClerkId === userClerkId && call.status === "ended"
     );
     const completedCalleeCalls = allCalls.filter(
-      (call: any) => call.calleeClerkId === args.userClerkId && call.status === "ended"
+      (call: any) => call.calleeClerkId === userClerkId && call.status === "ended"
     );
 
     return [...callerCalls, ...calleeCalls, ...ringingCalls, ...completedCallerCalls, ...completedCalleeCalls].sort(
@@ -100,15 +116,15 @@ export const listCallsForUser = query({
  */
 export const acceptCall = mutation({
   args: {
-    callId: v.id("calls"),
-    calleeClerkId: v.string()
+    callId: v.id("calls")
   },
   handler: async (ctx, args) => {
+    const calleeClerkId = await requireAuthenticatedClerkId(ctx);
     const call = await ctx.db.get(args.callId);
     if (!call) {
       throw new Error("Call not found.");
     }
-    if (call.calleeClerkId !== args.calleeClerkId) {
+    if (call.calleeClerkId !== calleeClerkId) {
       throw new Error("Only the callee can accept this call.");
     }
     if (call.status !== "ringing") {
@@ -137,15 +153,15 @@ export const acceptCall = mutation({
  */
 export const ignoreCall = mutation({
   args: {
-    callId: v.id("calls"),
-    calleeClerkId: v.string()
+    callId: v.id("calls")
   },
   handler: async (ctx, args) => {
+    const calleeClerkId = await requireAuthenticatedClerkId(ctx);
     const call = await ctx.db.get(args.callId);
     if (!call) {
       return { ok: true };
     }
-    if (call.calleeClerkId !== args.calleeClerkId) {
+    if (call.calleeClerkId !== calleeClerkId) {
       throw new Error("Only the callee can ignore this call.");
     }
 
@@ -167,15 +183,15 @@ export const ignoreCall = mutation({
 export const endCall = mutation({
   args: {
     callId: v.id("calls"),
-    actorClerkId: v.string(),
     reason: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    const actorClerkId = await requireAuthenticatedClerkId(ctx);
     const call = await ctx.db.get(args.callId);
     if (!call) {
       return { ok: true };
     }
-    const isParticipant = call.callerClerkId === args.actorClerkId || call.calleeClerkId === args.actorClerkId;
+    const isParticipant = call.callerClerkId === actorClerkId || call.calleeClerkId === actorClerkId;
     if (!isParticipant) {
       throw new Error("Only call participants can end a call.");
     }
@@ -196,16 +212,16 @@ export const endCall = mutation({
 export const failCall = mutation({
   args: {
     callId: v.id("calls"),
-    actorClerkId: v.string(),
     reason: v.string()
   },
   handler: async (ctx, args) => {
+    const actorClerkId = await requireAuthenticatedClerkId(ctx);
     const call = await ctx.db.get(args.callId);
     if (!call) {
       return { ok: true };
     }
 
-    const isParticipant = call.callerClerkId === args.actorClerkId || call.calleeClerkId === args.actorClerkId;
+    const isParticipant = call.callerClerkId === actorClerkId || call.calleeClerkId === actorClerkId;
     if (!isParticipant) {
       throw new Error("Only call participants can fail a call.");
     }
@@ -241,5 +257,61 @@ export const markMissedRingingCalls = mutation({
     );
 
     return { marked: staleRinging.length };
+  }
+});
+
+/**
+ * Internal webhook mutation that ends a call using its room name.
+ */
+export const internalEndCallByRoom = internalMutation({
+  args: {
+    roomName: v.string(),
+    reason: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const call = await findLatestCallByRoomName(ctx, args.roomName);
+    if (!call) {
+      return { ok: true };
+    }
+
+    if (call.status === "ended" || call.status === "failed" || call.status === "missed") {
+      return { ok: true };
+    }
+
+    await ctx.db.patch(call._id, {
+      status: "ended",
+      endedAt: Date.now(),
+      endReason: args.reason ?? "webhook_end"
+    });
+
+    return { ok: true };
+  }
+});
+
+/**
+ * Internal webhook mutation that marks a call as failed by room name.
+ */
+export const internalFailCallByRoom = internalMutation({
+  args: {
+    roomName: v.string(),
+    reason: v.string()
+  },
+  handler: async (ctx, args) => {
+    const call = await findLatestCallByRoomName(ctx, args.roomName);
+    if (!call) {
+      return { ok: true };
+    }
+
+    if (call.status === "failed" || call.status === "ended" || call.status === "missed") {
+      return { ok: true };
+    }
+
+    await ctx.db.patch(call._id, {
+      status: "failed",
+      endedAt: Date.now(),
+      endReason: args.reason
+    });
+
+    return { ok: true };
   }
 });

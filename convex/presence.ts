@@ -12,18 +12,26 @@ async function findPresenceByUser(ctx: { db: any }, userClerkId: string): Promis
   return rows.find((row: any) => row.userClerkId === userClerkId) ?? null;
 }
 
+async function requireAuthenticatedClerkId(ctx: { auth: { getUserIdentity: () => Promise<any> } }): Promise<string> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity?.subject) {
+    throw new Error("Unauthorized");
+  }
+  return identity.subject as string;
+}
+
 /**
  * Records a presence heartbeat and marks the user as online.
  */
 export const heartbeat = mutation({
   args: {
-    userClerkId: v.string(),
     networkQuality: v.optional(v.union(v.literal("good"), v.literal("poor"), v.literal("unknown"))),
     currentCallRoom: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    const userClerkId = await requireAuthenticatedClerkId(ctx);
     const now = Date.now();
-    const existing = await findPresenceByUser(ctx, args.userClerkId);
+    const existing = await findPresenceByUser(ctx, userClerkId);
 
     const nextQuality = args.networkQuality ?? existing?.networkQuality ?? "unknown";
 
@@ -38,7 +46,7 @@ export const heartbeat = mutation({
     }
 
     await ctx.db.insert("presence", {
-      userClerkId: args.userClerkId,
+      userClerkId,
       lastHeartbeatAt: now,
       state: "home",
       networkQuality: nextQuality,
@@ -53,11 +61,10 @@ export const heartbeat = mutation({
  * Marks a user as away, typically on explicit sign-out or tab unload.
  */
 export const markAway = mutation({
-  args: {
-    userClerkId: v.string()
-  },
-  handler: async (ctx, args) => {
-    const existing = await findPresenceByUser(ctx, args.userClerkId);
+  args: {},
+  handler: async (ctx) => {
+    const userClerkId = await requireAuthenticatedClerkId(ctx);
+    const existing = await findPresenceByUser(ctx, userClerkId);
 
     if (!existing) {
       return { ok: true };

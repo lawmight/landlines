@@ -13,22 +13,30 @@ async function findUserByClerkId(ctx: { db: any }, clerkId: string): Promise<any
   return users.find((user: any) => user.clerkId === clerkId) ?? null;
 }
 
+async function requireAuthenticatedClerkId(ctx: { auth: { getUserIdentity: () => Promise<any> } }): Promise<string> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity?.subject) {
+    throw new Error("Unauthorized");
+  }
+  return identity.subject as string;
+}
+
 /**
  * Creates an invite from the inviter to an email or username.
  */
 export const sendInvite = mutation({
   args: {
-    inviterClerkId: v.string(),
     inviteeEmail: v.optional(v.string()),
     inviteeUsername: v.optional(v.string()),
     inviteeClerkId: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    const inviterClerkId = await requireAuthenticatedClerkId(ctx);
     if (!args.inviteeEmail && !args.inviteeUsername && !args.inviteeClerkId) {
       throw new Error("An invite requires email, username, or clerk id.");
     }
 
-    const inviter = await findUserByClerkId(ctx, args.inviterClerkId);
+    const inviter = await findUserByClerkId(ctx, inviterClerkId);
 
     if (!inviter) {
       throw new Error("Inviter must exist before sending invites.");
@@ -37,7 +45,7 @@ export const sendInvite = mutation({
     if (inviter.subscriptionTier === "free") {
       const allInvites = await ctx.db.query("invites").collect();
       const acceptedCount = allInvites.filter(
-        (invite: any) => invite.inviterClerkId === args.inviterClerkId && invite.status === "accepted"
+        (invite: any) => invite.inviterClerkId === inviterClerkId && invite.status === "accepted"
       );
       if (acceptedCount.length >= MAX_FREE_CONTACTS) {
         throw new Error("Free plan reached the 20 contact limit. Upgrade to Pro for unlimited contacts.");
@@ -46,7 +54,7 @@ export const sendInvite = mutation({
 
     const allInvites = await ctx.db.query("invites").collect();
     const existing = allInvites.filter(
-      (invite: any) => invite.inviterClerkId === args.inviterClerkId && invite.status === "pending"
+      (invite: any) => invite.inviterClerkId === inviterClerkId && invite.status === "pending"
     );
 
     const duplicate = existing.find(
@@ -63,7 +71,7 @@ export const sendInvite = mutation({
     const now = Date.now();
 
     return await ctx.db.insert("invites", {
-      inviterClerkId: args.inviterClerkId,
+      inviterClerkId,
       inviteeClerkId: args.inviteeClerkId,
       inviteeEmail: args.inviteeEmail,
       inviteeUsername: args.inviteeUsername,
@@ -79,10 +87,10 @@ export const sendInvite = mutation({
  */
 export const acceptInvite = mutation({
   args: {
-    inviteId: v.id("invites"),
-    inviteeClerkId: v.string()
+    inviteId: v.id("invites")
   },
   handler: async (ctx, args) => {
+    const inviteeClerkId = await requireAuthenticatedClerkId(ctx);
     const invite = await ctx.db.get(args.inviteId);
     if (!invite) {
       throw new Error("Invite not found.");
@@ -98,6 +106,10 @@ export const acceptInvite = mutation({
         respondedAt: Date.now()
       });
       throw new Error("Invite has expired.");
+    }
+
+    if (invite.inviteeClerkId && invite.inviteeClerkId !== inviteeClerkId) {
+      throw new Error("You are not authorized to accept this invite.");
     }
 
     const inviter = await findUserByClerkId(ctx, invite.inviterClerkId);
@@ -118,7 +130,7 @@ export const acceptInvite = mutation({
 
     await ctx.db.patch(invite._id, {
       status: "accepted",
-      inviteeClerkId: args.inviteeClerkId,
+      inviteeClerkId,
       respondedAt: Date.now()
     });
 
@@ -131,10 +143,10 @@ export const acceptInvite = mutation({
  */
 export const ignoreInvite = mutation({
   args: {
-    inviteId: v.id("invites"),
-    inviteeClerkId: v.string()
+    inviteId: v.id("invites")
   },
   handler: async (ctx, args) => {
+    const inviteeClerkId = await requireAuthenticatedClerkId(ctx);
     const invite = await ctx.db.get(args.inviteId);
     if (!invite) {
       throw new Error("Invite not found.");
@@ -144,13 +156,13 @@ export const ignoreInvite = mutation({
       return { ok: true };
     }
 
-    if (invite.inviteeClerkId && invite.inviteeClerkId !== args.inviteeClerkId) {
+    if (invite.inviteeClerkId && invite.inviteeClerkId !== inviteeClerkId) {
       throw new Error("You are not authorized to ignore this invite.");
     }
 
     await ctx.db.patch(invite._id, {
       status: "ignored",
-      inviteeClerkId: args.inviteeClerkId,
+      inviteeClerkId,
       respondedAt: Date.now()
     });
 
@@ -163,15 +175,15 @@ export const ignoreInvite = mutation({
  */
 export const revokeInvite = mutation({
   args: {
-    inviteId: v.id("invites"),
-    inviterClerkId: v.string()
+    inviteId: v.id("invites")
   },
   handler: async (ctx, args) => {
+    const inviterClerkId = await requireAuthenticatedClerkId(ctx);
     const invite = await ctx.db.get(args.inviteId);
     if (!invite) {
       throw new Error("Invite not found.");
     }
-    if (invite.inviterClerkId !== args.inviterClerkId) {
+    if (invite.inviterClerkId !== inviterClerkId) {
       throw new Error("You can only revoke your own invite.");
     }
 
@@ -189,17 +201,17 @@ export const revokeInvite = mutation({
  */
 export const listInvitesForUser = query({
   args: {
-    userClerkId: v.string(),
     email: v.optional(v.string()),
     username: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    const userClerkId = await requireAuthenticatedClerkId(ctx);
     const allInvites = await ctx.db.query("invites").collect();
     const sent = allInvites.filter(
-      (invite: any) => invite.inviterClerkId === args.userClerkId && invite.status === "pending"
+      (invite: any) => invite.inviterClerkId === userClerkId && invite.status === "pending"
     );
     const receivedById = allInvites.filter(
-      (invite: any) => invite.inviteeClerkId === args.userClerkId && invite.status === "pending"
+      (invite: any) => invite.inviteeClerkId === userClerkId && invite.status === "pending"
     );
     const receivedByEmail = args.email
       ? allInvites.filter((invite: any) => invite.inviteeEmail === args.email && invite.status === "pending")

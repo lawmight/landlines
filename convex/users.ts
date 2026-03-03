@@ -12,20 +12,28 @@ async function findUserByClerkId(ctx: { db: any }, clerkId: string): Promise<any
   return users.find((item: any) => item.clerkId === clerkId) ?? null;
 }
 
+async function requireAuthenticatedClerkId(ctx: { auth: { getUserIdentity: () => Promise<any> } }): Promise<string> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity?.subject) {
+    throw new Error("Unauthorized");
+  }
+  return identity.subject as string;
+}
+
 /**
  * Upserts a Convex user record from Clerk profile metadata.
  */
 export const ensureUser = mutation({
   args: {
-    clerkId: v.string(),
     email: v.string(),
     displayName: v.string(),
     username: v.optional(v.string()),
     avatarUrl: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    const clerkId = await requireAuthenticatedClerkId(ctx);
     const now = Date.now();
-    const existing = await findUserByClerkId(ctx, args.clerkId);
+    const existing = await findUserByClerkId(ctx, clerkId);
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -39,7 +47,7 @@ export const ensureUser = mutation({
     }
 
     return await ctx.db.insert("users", {
-      clerkId: args.clerkId,
+      clerkId,
       email: args.email,
       username: args.username,
       displayName: args.displayName,
@@ -55,13 +63,12 @@ export const ensureUser = mutation({
  * Lists accepted inner circle members for the requesting user.
  */
 export const listInnerCircle = query({
-  args: {
-    viewerClerkId: v.string()
-  },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const viewerClerkId = await requireAuthenticatedClerkId(ctx);
     const allInvites = await ctx.db.query("invites").collect();
     const acceptedInvites = allInvites.filter(
-      (invite: any) => invite.inviterClerkId === args.viewerClerkId && invite.status === "accepted"
+      (invite: any) => invite.inviterClerkId === viewerClerkId && invite.status === "accepted"
     );
 
     const members = await Promise.all(
@@ -100,16 +107,16 @@ export const listInnerCircle = query({
  */
 export const canReachUser = query({
   args: {
-    callerClerkId: v.string(),
     calleeClerkId: v.string()
   },
   handler: async (ctx, args) => {
+    const callerClerkId = await requireAuthenticatedClerkId(ctx);
     const allInvites = await ctx.db.query("invites").collect();
     const accepted = allInvites.filter(
       (invite: any) => invite.inviterClerkId === args.calleeClerkId && invite.status === "accepted"
     );
 
-    return accepted.some((invite) => invite.inviteeClerkId === args.callerClerkId);
+    return accepted.some((invite) => invite.inviteeClerkId === callerClerkId);
   }
 });
 
@@ -117,13 +124,12 @@ export const canReachUser = query({
  * Returns the accepted inner circle count for the given user.
  */
 export const getAcceptedInnerCircleCount = query({
-  args: {
-    userClerkId: v.string()
-  },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userClerkId = await requireAuthenticatedClerkId(ctx);
     const allInvites = await ctx.db.query("invites").collect();
     const accepted = allInvites.filter(
-      (invite: any) => invite.inviterClerkId === args.userClerkId && invite.status === "accepted"
+      (invite: any) => invite.inviterClerkId === userClerkId && invite.status === "accepted"
     );
 
     return accepted.length;
