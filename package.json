@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.22.0",
+    "@polar-sh/nextjs": "^0.9.4",
     "@polar-sh/sdk": "^0.45.1",
     "@radix-ui/react-slot": "^1.2.3",
     "@t3-oss/env-core": "^0.13.10",
