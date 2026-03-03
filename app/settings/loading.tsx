@@ -1,9 +1,13 @@
+import { AppShell } from "@/components/AppShell";
+
 export default function SettingsLoading(): React.JSX.Element {
   return (
-    <main id="main" className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-10">
-      <div className="h-8 w-40 animate-pulse rounded-md bg-[var(--muted)]" />
-      <div className="h-48 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--card)]" />
-      <div className="h-44 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--card)]" />
-    </main>
+    <AppShell activeSection="settings" maxWidth="max-w-4xl">
+      <div className="flex flex-col gap-6">
+        <div className="h-8 w-40 animate-pulse bg-[var(--muted)]" />
+        <div className="h-48 animate-pulse border border-[var(--border)] bg-[var(--card)]" />
+        <div className="h-44 animate-pulse border border-[var(--border)] bg-[var(--card)]" />
+      </div>
+    </AppShell>
   );
 }

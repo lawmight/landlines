@@ -1,13 +1,11 @@
-import Link from "next/link";
-import { Home } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+import { AppShell } from "@/components/AppShell";
 import { IncomingCallCard } from "@/components/IncomingCallCard";
 import { InnerCircle } from "@/components/InnerCircle";
 import { InviteModal } from "@/components/InviteModal";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
-import { Button } from "@/components/ui/button";
 
 /**
  * Auth-protected dashboard for inner-circle management and call activity.
@@ -19,31 +17,25 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
   }
 
   return (
-    <main id="main" className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Reachable only by people you explicitly accepted.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" asChild>
-            <Link href="/" className="flex items-center gap-2">
-              <Home className="h-4 w-4" aria-hidden />
-              Home
-            </Link>
-          </Button>
+    <AppShell activeSection="dashboard" maxWidth="max-w-5xl">
+      <div className="flex flex-col gap-6">
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border)] pb-6">
+          <div>
+            <p className="label-caps">Inner circle controls</p>
+            <h1 className="display-serif mt-2 text-[clamp(2.6rem,5vw,3.4rem)] font-light leading-[1.02] tracking-[0.01em]">
+              Dashboard
+            </h1>
+            <p className="mt-3 text-sm text-[var(--muted-foreground)]">
+              Reachable only by people you explicitly accepted.
+            </p>
+          </div>
           <InviteModal />
-          <Button variant="secondary" asChild>
-            <Link href="/settings">Settings</Link>
-          </Button>
-        </div>
-      </header>
+        </header>
 
-      <IncomingCallCard />
-      <PresenceHeartbeat />
-      <InnerCircle />
-    </main>
+        <IncomingCallCard />
+        <PresenceHeartbeat />
+        <InnerCircle />
+      </div>
+    </AppShell>
   );
 }

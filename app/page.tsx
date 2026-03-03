@@ -1,26 +1,14 @@
 import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 
-const displayFont = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["300", "400"],
-  variable: "--font-display",
-  display: "swap",
-});
+import { PricingSection } from "@/components/PricingSection";
+import { getProPrices } from "@/lib/polar";
 
-const bodyFont = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-body",
-  display: "swap",
-});
+export default async function HomePage(): Promise<React.JSX.Element> {
+  const prices = await getProPrices();
 
-export default function HomePage(): React.JSX.Element {
   return (
-    <div
-      className={`${displayFont.variable} ${bodyFont.variable} landing min-h-screen`}
-    >
+    <div className="landing min-h-screen">
       <nav className="mx-auto flex w-full max-w-[920px] items-center justify-between px-6 pt-6">
         <Link href="/" className="text-xs uppercase tracking-[0.24em] text-[var(--color-mid)]">
           Landlines
@@ -74,7 +62,9 @@ export default function HomePage(): React.JSX.Element {
           </span>
         </section>
 
-        <section className="anim-5 mx-auto mt-12 w-full max-w-[720px] px-6">
+        <PricingSection prices={prices} />
+
+        <section className="anim-5 mx-auto mt-16 w-full max-w-[720px] px-6">
           <div className="border border-[var(--color-wire)] p-6 md:p-10">
             <p className="mb-8 max-w-[480px] text-[15px] leading-[1.65] text-[var(--color-mid)]">
               Your account is reachable only by contacts you explicitly accept.

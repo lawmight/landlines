@@ -137,6 +137,24 @@ export const getAcceptedInnerCircleCount = query({
 });
 
 /**
+ * Returns the current user's profile including subscription tier.
+ */
+export const getProfile = query({
+  args: {},
+  handler: async (ctx) => {
+    const clerkId = await requireAuthenticatedClerkId(ctx);
+    const user = await findUserByClerkId(ctx, clerkId);
+    if (!user) return null;
+    return {
+      clerkId: user.clerkId,
+      email: user.email,
+      displayName: user.displayName,
+      subscriptionTier: user.subscriptionTier as "free" | "pro",
+    };
+  },
+});
+
+/**
  * Updates subscription tier for a user from billing webhooks.
  */
 export const setSubscriptionTier = mutation({
