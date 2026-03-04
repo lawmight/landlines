@@ -10,6 +10,8 @@
 
 import type * as calls from "../calls.js";
 import type * as invites from "../invites.js";
+import type * as lib_auth from "../lib/auth.js";
+import type * as lib_users from "../lib/users.js";
 import type * as presence from "../presence.js";
 import type * as users from "../users.js";
 
@@ -22,6 +24,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   calls: typeof calls;
   invites: typeof invites;
+  "lib/auth": typeof lib_auth;
+  "lib/users": typeof lib_users;
   presence: typeof presence;
   users: typeof users;
 }>;

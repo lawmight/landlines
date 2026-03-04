@@ -7,6 +7,8 @@ import { ThemeProvider } from "next-themes";
 
 import { convex } from "@/lib/convex";
 
+import { AuthDebugLogger } from "@/components/auth-debug-logger";
+
 interface ProvidersProps {
   children: ReactNode;
 }
@@ -18,6 +20,7 @@ export function Providers({ children }: ProvidersProps): React.JSX.Element {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <AuthDebugLogger />
         {children}
       </ConvexProviderWithClerk>
     </ThemeProvider>
