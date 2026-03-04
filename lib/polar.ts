@@ -9,7 +9,7 @@ function createPolarClient(): Polar {
   }
   return new Polar({
     accessToken: env.POLAR_ACCESS_TOKEN,
-    server: "sandbox",
+    server: "production",
   });
 }
 

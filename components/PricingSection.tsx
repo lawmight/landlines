@@ -114,24 +114,9 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
           </p>
           <p className="mt-1 text-sm text-[var(--color-mid)]">per year</p>
 
-          <ul className="mt-8 flex-1 space-y-3 text-[14px] leading-normal text-[var(--color-mid)]">
-            <li className="flex items-start gap-2">
-              <span className="mt-[2px] text-[var(--color-accent)]">&bull;</span>
-              Unlimited contacts
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-[2px] text-[var(--color-accent)]">&bull;</span>
-              Voice &amp; video calling
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-[2px] text-[var(--color-accent)]">&bull;</span>
-              Always-on presence
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-[2px] text-[var(--color-accent)]">&bull;</span>
-              Priority support
-            </li>
-          </ul>
+          <p className="mt-8 flex-1 text-[14px] leading-normal text-[var(--color-mid)]">
+            Don&apos;t hang up every month — commit to a full year, or more.
+          </p>
 
           <div className="mt-8">
             <SignedOut>
