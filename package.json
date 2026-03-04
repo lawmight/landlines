@@ -18,6 +18,7 @@
     "convex:deploy": "convex deploy",
     "server:dev": "tsx watch server/index.ts",
     "server:start": "tsx server/index.ts",
+    "test:twilio": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs server/scripts/test-twilio.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run server:dev\" \"npm run convex:dev\""
   },
   "dependencies": {
