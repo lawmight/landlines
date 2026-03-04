@@ -1,25 +1,11 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import { requireAuthenticatedClerkId } from "./lib/auth";
+import { findUserByClerkId } from "./lib/users";
 
 const MAX_FREE_CONTACTS = 20;
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-/**
- * Finds a user by Clerk id.
- */
-async function findUserByClerkId(ctx: { db: any }, clerkId: string): Promise<any | null> {
-  const users = await ctx.db.query("users").collect();
-  return users.find((user: any) => user.clerkId === clerkId) ?? null;
-}
-
-async function requireAuthenticatedClerkId(ctx: { auth: { getUserIdentity: () => Promise<any> } }): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity?.subject) {
-    throw new Error("Unauthorized");
-  }
-  return identity.subject as string;
-}
 
 /**
  * Creates an invite from the inviter to an email or username.
@@ -36,7 +22,7 @@ export const sendInvite = mutation({
       throw new Error("An invite requires email, username, or clerk id.");
     }
 
-    const inviter = await findUserByClerkId(ctx, inviterClerkId);
+    const inviter = await findUserByClerkId(ctx.db, inviterClerkId);
 
     if (!inviter) {
       throw new Error("Inviter must exist before sending invites.");
@@ -112,7 +98,7 @@ export const acceptInvite = mutation({
       throw new Error("You are not authorized to accept this invite.");
     }
 
-    const inviter = await findUserByClerkId(ctx, invite.inviterClerkId);
+    const inviter = await findUserByClerkId(ctx.db, invite.inviterClerkId);
 
     if (!inviter) {
       throw new Error("Inviter account is missing.");

@@ -1,16 +1,9 @@
 import { v } from "convex/values";
 
 import { internalMutation, mutation, query } from "./_generated/server";
+import { requireAuthenticatedClerkId } from "./lib/auth";
 
 const RING_TIMEOUT_MS = 45_000;
-
-async function requireAuthenticatedClerkId(ctx: { auth: { getUserIdentity: () => Promise<any> } }): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity?.subject) {
-    throw new Error("Unauthorized");
-  }
-  return identity.subject as string;
-}
 
 async function findLatestCallByRoomName(ctx: { db: any }, roomName: string): Promise<any | null> {
   const allCalls = await ctx.db.query("calls").collect();

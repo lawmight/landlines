@@ -1,23 +1,17 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import type { DatabaseReader } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+import { requireAuthenticatedClerkId } from "./lib/auth";
 
 const HEARTBEAT_WINDOW_MS = 35_000;
 
-/**
- * Finds a presence row for a specific user id.
- */
-async function findPresenceByUser(ctx: { db: any }, userClerkId: string): Promise<any | null> {
-  const rows = await ctx.db.query("presence").collect();
-  return rows.find((row: any) => row.userClerkId === userClerkId) ?? null;
-}
-
-async function requireAuthenticatedClerkId(ctx: { auth: { getUserIdentity: () => Promise<any> } }): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity?.subject) {
-    throw new Error("Unauthorized");
-  }
-  return identity.subject as string;
+async function findPresenceByUser(db: DatabaseReader, userClerkId: string): Promise<Doc<"presence"> | null> {
+  return await db
+    .query("presence")
+    .withIndex("by_user_clerk_id", (q) => q.eq("userClerkId", userClerkId))
+    .first();
 }
 
 /**
@@ -31,7 +25,7 @@ export const heartbeat = mutation({
   handler: async (ctx, args) => {
     const userClerkId = await requireAuthenticatedClerkId(ctx);
     const now = Date.now();
-    const existing = await findPresenceByUser(ctx, userClerkId);
+    const existing = await findPresenceByUser(ctx.db, userClerkId);
 
     const nextQuality = args.networkQuality ?? existing?.networkQuality ?? "unknown";
 
@@ -64,7 +58,7 @@ export const markAway = mutation({
   args: {},
   handler: async (ctx) => {
     const userClerkId = await requireAuthenticatedClerkId(ctx);
-    const existing = await findPresenceByUser(ctx, userClerkId);
+    const existing = await findPresenceByUser(ctx.db, userClerkId);
 
     if (!existing) {
       return { ok: true };
@@ -87,7 +81,7 @@ export const getPresence = query({
     userClerkId: v.string()
   },
   handler: async (ctx, args) => {
-    const existing = await findPresenceByUser(ctx, args.userClerkId);
+    const existing = await findPresenceByUser(ctx.db, args.userClerkId);
 
     if (!existing) {
       return {
