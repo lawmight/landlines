@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { MailPlus, UserRoundPlus } from "lucide-react";
-import { useMutation } from "convex/react";
+import { useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 
 import { api } from "@/convex/_generated/api";
@@ -15,9 +15,11 @@ import { Label } from "@/components/ui/label";
 
 /**
  * Invite composer for adding people to a user's inner circle.
+ * Waits for Convex auth (Clerk token) before allowing send to avoid Unauthorized.
  */
 export function InviteModal(): React.JSX.Element {
   const { user } = useUser();
+  const { isAuthenticated } = useConvexAuth();
   const sendInviteRef = (api as any)?.invites?.sendInvite;
   const fallbackMutationRef = (api as any).invites.expireStaleInvites;
   const sendInvite = useMutation(sendInviteRef ?? fallbackMutationRef);
@@ -77,6 +79,11 @@ export function InviteModal(): React.JSX.Element {
   const submitInvite = async (): Promise<void> => {
     if (!user) {
       toast.error("You must be signed in.");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error("Your session is still loading. Please try again in a moment.");
       return;
     }
 
@@ -161,7 +168,7 @@ export function InviteModal(): React.JSX.Element {
             <Button variant="ghost" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button onClick={submitInvite} disabled={isSubmitting}>
+            <Button onClick={submitInvite} disabled={isSubmitting || !isAuthenticated}>
               <MailPlus className="h-4 w-4" />
               Send invite
             </Button>
