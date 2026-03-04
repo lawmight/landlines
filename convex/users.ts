@@ -1,24 +1,10 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import { requireAuthenticatedClerkId } from "./lib/auth";
+import { findUserByClerkId } from "./lib/users";
 
 const HEARTBEAT_WINDOW_MS = 35_000;
-
-/**
- * Finds a user by Clerk id.
- */
-async function findUserByClerkId(ctx: { db: any }, clerkId: string): Promise<any | null> {
-  const users = await ctx.db.query("users").collect();
-  return users.find((item: any) => item.clerkId === clerkId) ?? null;
-}
-
-async function requireAuthenticatedClerkId(ctx: { auth: { getUserIdentity: () => Promise<any> } }): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity?.subject) {
-    throw new Error("Unauthorized");
-  }
-  return identity.subject as string;
-}
 
 /**
  * Upserts a Convex user record from Clerk profile metadata.
@@ -33,7 +19,7 @@ export const ensureUser = mutation({
   handler: async (ctx, args) => {
     const clerkId = await requireAuthenticatedClerkId(ctx);
     const now = Date.now();
-    const existing = await findUserByClerkId(ctx, clerkId);
+    const existing = await findUserByClerkId(ctx.db, clerkId);
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -77,7 +63,7 @@ export const listInnerCircle = query({
           return null;
         }
 
-        const user = await findUserByClerkId(ctx, invite.inviteeClerkId as string);
+        const user = await findUserByClerkId(ctx.db, invite.inviteeClerkId);
 
         if (!user) {
           return null;
@@ -143,7 +129,7 @@ export const getProfile = query({
   args: {},
   handler: async (ctx) => {
     const clerkId = await requireAuthenticatedClerkId(ctx);
-    const user = await findUserByClerkId(ctx, clerkId);
+    const user = await findUserByClerkId(ctx.db, clerkId);
     if (!user) return null;
     return {
       clerkId: user.clerkId,
@@ -163,7 +149,7 @@ export const setSubscriptionTier = mutation({
     subscriptionTier: v.union(v.literal("free"), v.literal("pro"))
   },
   handler: async (ctx, args) => {
-    const user = await findUserByClerkId(ctx, args.userClerkId);
+    const user = await findUserByClerkId(ctx.db, args.userClerkId);
 
     if (!user) {
       throw new Error("User not found.");
