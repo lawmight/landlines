@@ -2,7 +2,8 @@ import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 import { PricingSection } from "@/components/PricingSection";
-import { getProPrices } from "@/lib/polar";
+import { UserSync } from "@/components/UserSync";
+import { getProPrices } from "@/lib/stripe";
 
 export default async function HomePage(): Promise<React.JSX.Element> {
   const prices = await getProPrices();
@@ -28,6 +29,10 @@ export default async function HomePage(): Promise<React.JSX.Element> {
       </nav>
 
       <main id="main">
+        <SignedIn>
+          <UserSync />
+        </SignedIn>
+
         <section className="flex flex-col items-center px-6 pb-16 pt-[clamp(4.5rem,10vh,7.5rem)]">
           <p className="anim-1 mb-8 text-[13px] uppercase tracking-[0.24em] text-[var(--color-mid)]">
             Private by design

@@ -1,8 +1,9 @@
 "use client";
 
-import { useUser, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
-import type { ProPrices } from "@/lib/polar";
+import { buildCheckoutUrl } from "@/lib/billing";
+import type { ProPrices } from "@/lib/stripe";
 
 interface PricingSectionProps {
   prices: ProPrices;
@@ -16,18 +17,7 @@ function formatPrice(amount: number, currency: string): string {
   }).format(amount);
 }
 
-function buildCheckoutUrl(productId: string, email?: string, externalId?: string): string {
-  const params = new URLSearchParams({ products: productId });
-  if (email) params.set("customerEmail", email);
-  if (externalId) params.set("customerExternalId", externalId);
-  return `/api/checkout?${params.toString()}`;
-}
-
 export function PricingSection({ prices }: PricingSectionProps): React.JSX.Element {
-  const { user } = useUser();
-  const email = user?.primaryEmailAddress?.emailAddress;
-  const clerkId = user?.id;
-
   const monthlyAmount = prices.monthly?.amount ?? 9;
   const annualAmount = prices.annual?.amount ?? 99;
   const currency = prices.monthly?.currency ?? prices.annual?.currency ?? "eur";
@@ -85,7 +75,7 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
             <SignedIn>
               {prices.monthly ? (
                 <a
-                  href={buildCheckoutUrl(prices.monthly.productId, email ?? undefined, clerkId ?? undefined)}
+                  href={buildCheckoutUrl("monthly")}
                   className="landing-btn block w-full text-center"
                 >
                   Subscribe monthly
@@ -129,7 +119,7 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
             <SignedIn>
               {prices.annual ? (
                 <a
-                  href={buildCheckoutUrl(prices.annual.productId, email ?? undefined, clerkId ?? undefined)}
+                  href={buildCheckoutUrl("annual")}
                   className="landing-btn landing-btn-primary block w-full text-center"
                 >
                   Subscribe annually

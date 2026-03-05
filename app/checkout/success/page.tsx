@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 
+import { UserSync } from "@/components/UserSync";
+
 export const metadata = {
   title: "Payment Confirmed",
 };
@@ -27,6 +29,7 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <SignedIn>
+            <UserSync />
             <Link href="/dashboard" className="landing-btn landing-btn-primary">
               Open Dashboard
             </Link>

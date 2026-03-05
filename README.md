@@ -1,6 +1,6 @@
 # Landlines
 
-Private, invite-only voice and video calling built with Next.js App Router, Clerk, Convex, Twilio, and Polar.
+Private, invite-only voice and video calling built with Next.js App Router, Clerk, Convex, Twilio, and Stripe Managed Payments.
 
 ## Stack
 
@@ -10,7 +10,7 @@ Private, invite-only voice and video calling built with Next.js App Router, Cler
 - Convex for realtime data, call state, invites, and presence
 - Twilio Voice SDK 2.x + Twilio Video SDK
 - Express signaling server (`/server`)
-- Polar subscription scaffolding
+- Stripe Managed Payments subscription checkout
 
 ## Quick Start
 
@@ -20,7 +20,7 @@ Private, invite-only voice and video calling built with Next.js App Router, Cler
    npm install
    ```
 
-2. Fill `.env.local` and provide Twilio/Clerk/Convex/Polar credentials.
+2. Fill `.env.local` and provide Twilio/Clerk/Convex/Stripe credentials.
 
 3. Start app + signaling + Convex:
 

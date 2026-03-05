@@ -22,7 +22,14 @@ All three can be started together with `npm run dev:all`.
 
 ### Environment variables
 
-All credentials live in `.env.local`. Clerk and Convex keys must be present for the app to render protected pages. Twilio keys are required only for actual voice/video calls. Polar keys are optional (billing/subscriptions).
+All credentials live in `.env.local`. Clerk and Convex keys must be present for the app to render protected pages. Twilio keys are required only for actual voice/video calls. Stripe keys are optional unless you are testing billing/subscriptions.
+
+### Stripe Managed Payments
+
+- **Required in `.env.local` for checkout:** `STRIPE_SECRET_KEY`, `LANDLINES_MONTHLY_PRICE_ID`, and either `LANDLINES_ANNUALY_PRICE_ID` or `LANDLINES_ANNUAL_PRICE_ID`.
+- **Required for webhook sync:** `STRIPE_WEBHOOK_SECRET`.
+- The checkout route uses Stripe Hosted Checkout with `managed_payments.enabled = true` and the preview API version `2026-03-04.preview`.
+- The webhook endpoint is `POST /api/webhooks/stripe` and updates Convex `users.subscriptionTier` between `free` and `pro`.
 
 ### Gotchas
 
