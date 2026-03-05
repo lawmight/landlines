@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
 
   const parseResult = tokenRequestSchema.safeParse(body);
   if (!parseResult.success) {
+    console.error("Token request validation failed", parseResult.error.flatten());
     return Response.json(
       {
         error: "Invalid token request payload.",

@@ -19,6 +19,13 @@ export async function fetchTwilioTokens(
   roomName: string,
   mode: "voice" | "video" = "video"
 ): Promise<TwilioTokenPayload> {
+  if (typeof identity !== "string" || identity.trim() === "") {
+    throw new Error("Cannot get call token: user not ready.");
+  }
+  if (typeof roomName !== "string" || roomName.trim() === "") {
+    throw new Error("Cannot get call token: room not ready.");
+  }
+
   const response = await fetch(`${env.NEXT_PUBLIC_SIGNALING_BASE_URL}/twilio/token`, {
     method: "POST",
     headers: {
@@ -28,7 +35,23 @@ export async function fetchTwilioTokens(
   });
 
   if (!response.ok) {
-    throw new Error(`Token request failed with status ${response.status}.`);
+    let message = `Token request failed with status ${response.status}.`;
+    try {
+      const body = (await response.json()) as { error?: string; details?: string | object };
+      if (body?.error) {
+        message = body.error;
+        if (body.details !== undefined) {
+          const detailsStr =
+            typeof body.details === "string"
+              ? body.details
+              : JSON.stringify(body.details);
+          message += ` ${detailsStr}`;
+        }
+      }
+    } catch {
+      // response body was not JSON or already consumed
+    }
+    throw new Error(message);
   }
 
   const payload: unknown = await response.json();
