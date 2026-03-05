@@ -48,6 +48,23 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
 
   usePresence(user?.id, roomId);
 
+  if (!roomId || roomId.trim() === "") {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm text-[var(--muted-foreground)]">Invalid room.</p>
+          <Button
+            variant="outline"
+            className="mt-3"
+            onClick={() => router.push("/dashboard")}
+          >
+            Back to dashboard
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   useEffect(() => {
     if (!user) {
       return;

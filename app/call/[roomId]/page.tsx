@@ -5,12 +5,8 @@ import { VoiceRoom } from "@/components/VoiceRoom";
 import { VideoRoom } from "@/components/VideoRoom";
 
 interface CallRoomPageProps {
-  params: {
-    roomId: string;
-  };
-  searchParams: {
-    mode?: string;
-  };
+  params: Promise<{ roomId: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }
 
 /**
@@ -22,11 +18,13 @@ export default async function CallRoomPage({ params, searchParams }: CallRoomPag
     redirect("/");
   }
 
-  const mode = searchParams.mode === "video" ? "video" : "voice";
+  const { roomId } = await params;
+  const { mode: modeParam } = await searchParams;
+  const mode = modeParam === "video" ? "video" : "voice";
 
   return (
     <main id="main" className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
-      {mode === "video" ? <VideoRoom roomId={params.roomId} mode="video" /> : <VoiceRoom roomId={params.roomId} />}
+      {mode === "video" ? <VideoRoom roomId={roomId} mode="video" /> : <VoiceRoom roomId={roomId} />}
     </main>
   );
 }

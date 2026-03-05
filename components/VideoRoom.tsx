@@ -44,6 +44,23 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
 
   usePresence(user?.id, roomId);
 
+  if (!roomId || roomId.trim() === "") {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm text-[var(--muted-foreground)]">Invalid room.</p>
+          <Button
+            variant="outline"
+            className="mt-3"
+            onClick={() => router.push("/dashboard")}
+          >
+            Back to dashboard
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const clearMediaElements = useCallback((): void => {
     const localContainer = localMediaRef.current;
     const remoteContainer = remoteMediaRef.current;
