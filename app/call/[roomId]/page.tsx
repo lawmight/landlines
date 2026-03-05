@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+import { CallPageShell } from "@/components/call/CallPageShell";
 import { VoiceRoom } from "@/components/VoiceRoom";
 import { VideoRoom } from "@/components/VideoRoom";
 
@@ -23,8 +24,8 @@ export default async function CallRoomPage({ params, searchParams }: CallRoomPag
   const mode = modeParam === "video" ? "video" : "voice";
 
   return (
-    <main id="main" className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
+    <CallPageShell roomId={roomId} mode={mode}>
       {mode === "video" ? <VideoRoom roomId={roomId} mode="video" /> : <VoiceRoom roomId={roomId} />}
-    </main>
+    </CallPageShell>
   );
 }

@@ -7,13 +7,26 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
+type CallRecord = {
+  _id: Id<"calls">;
+  roomName: string;
+  type: "voice" | "video";
+  status: "ringing" | "active" | "ended" | "failed" | "missed";
+  callerClerkId: string;
+  calleeClerkId: string;
+  createdAt: number;
+  acceptedAt?: number;
+  endedAt?: number;
+  endReason?: string;
+};
+
 /**
  * Provides call lifecycle helpers backed by Convex call-state documents.
  * Requires `npx convex dev` to have been run so generated API references exist.
  */
 export function useCall(): {
   incomingCall: { _id: Id<"calls">; type: "voice" | "video"; callerClerkId: string; roomName: string } | null | undefined;
-  recentCalls: unknown[] | undefined;
+  recentCalls: CallRecord[] | undefined;
   isWorking: boolean;
   initiateCall: (calleeClerkId: string, type: "voice" | "video") => Promise<{ callId: string; roomName: string }>;
   acceptCall: (callId: string) => Promise<void>;
