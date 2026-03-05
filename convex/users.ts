@@ -52,10 +52,12 @@ export const listInnerCircle = query({
   args: {},
   handler: async (ctx) => {
     const viewerClerkId = await requireAuthenticatedClerkId(ctx);
-    const allInvites = await ctx.db.query("invites").collect();
-    const acceptedInvites = allInvites.filter(
-      (invite: any) => invite.inviterClerkId === viewerClerkId && invite.status === "accepted"
-    );
+    const acceptedInvites = await ctx.db
+      .query("invites")
+      .withIndex("by_inviter_status", (q) =>
+        q.eq("inviterClerkId", viewerClerkId).eq("status", "accepted")
+      )
+      .collect();
 
     const members = await Promise.all(
       acceptedInvites.map(async (invite) => {

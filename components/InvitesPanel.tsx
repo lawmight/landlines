@@ -20,6 +20,7 @@ export function InvitesPanel(): React.JSX.Element {
   const { isAuthenticated } = useConvexAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const ensureUser = useMutation(api.users.ensureUser);
   const acceptInvite = useMutation(api.invites.acceptInvite);
   const ignoreInvite = useMutation(api.invites.ignoreInvite);
   const revokeInvite = useMutation(api.invites.revokeInvite);
@@ -45,6 +46,17 @@ export function InvitesPanel(): React.JSX.Element {
     }
     setIsSubmitting(true);
     try {
+      const primaryEmail = user.primaryEmailAddress?.emailAddress ?? "";
+      const displayName =
+        user.fullName?.trim() || user.username || primaryEmail || "User";
+      const username = user.username ?? undefined;
+      const avatarUrl = user.imageUrl ?? undefined;
+      await ensureUser({
+        email: primaryEmail,
+        displayName,
+        username,
+        avatarUrl
+      });
       await acceptInvite({ inviteId: inviteId as any });
       toast.success("Invite accepted.");
     } catch (caught) {
