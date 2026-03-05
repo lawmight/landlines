@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { InvitesPanel } from "@/components/InvitesPanel";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
+import { UserSync } from "@/components/UserSync";
 
 /**
  * Auth-protected invite management page.
@@ -27,6 +28,7 @@ export default async function InvitesPage(): Promise<React.JSX.Element> {
           </p>
         </header>
         <PresenceHeartbeat />
+        <UserSync />
         <InvitesPanel />
       </div>
     </AppShell>

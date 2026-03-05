@@ -6,6 +6,7 @@ import { IncomingCallCard } from "@/components/IncomingCallCard";
 import { InnerCircle } from "@/components/InnerCircle";
 import { InviteModal } from "@/components/InviteModal";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
+import { UserSync } from "@/components/UserSync";
 
 /**
  * Auth-protected dashboard for inner-circle management and call activity.
@@ -34,6 +35,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
 
         <IncomingCallCard />
         <PresenceHeartbeat />
+        <UserSync />
         <InnerCircle />
       </div>
     </AppShell>

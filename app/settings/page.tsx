@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { BillingCard } from "@/components/BillingCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
+import { UserSync } from "@/components/UserSync";
 import { getProPrices } from "@/lib/polar";
 
 export default async function SettingsPage(): Promise<React.JSX.Element> {
@@ -29,6 +30,7 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
 
         <Card>
           <PresenceHeartbeat />
+          <UserSync />
           <CardHeader>
             <CardTitle>Profile</CardTitle>
             <CardDescription>Managed by Clerk.</CardDescription>
