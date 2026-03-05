@@ -40,8 +40,9 @@ export function CallButton({ calleeClerkId, type, canReach = true }: CallButtonP
       <Button
         onClick={startCall}
         size="sm"
-        variant={type === "video" ? "default" : "secondary"}
+        variant={type === "video" ? "default" : "outline"}
         disabled={disabled}
+        className="rounded-full px-4"
         title={!canReach ? "They need to add you to their inner circle before you can call." : undefined}
       >
         {type === "video" ? <Video className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
