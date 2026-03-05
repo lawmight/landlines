@@ -17,6 +17,7 @@ export function useInnerCircle(): {
     avatarUrl?: string;
     username?: string;
     presence: "home" | "away";
+    canReach: boolean;
   }>;
   isLoading: boolean;
 } {

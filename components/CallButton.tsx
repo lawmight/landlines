@@ -11,14 +11,17 @@ import { Button } from "@/components/ui/button";
 interface CallButtonProps {
   calleeClerkId: string;
   type: "voice" | "video";
+  canReach?: boolean;
 }
 
 /**
  * Starts a voice or video call and routes to the active room.
+ * Disabled when canReach is false (callee has not added you to their inner circle).
  */
-export function CallButton({ calleeClerkId, type }: CallButtonProps): React.JSX.Element {
+export function CallButton({ calleeClerkId, type, canReach = true }: CallButtonProps): React.JSX.Element {
   const router = useRouter();
   const { initiateCall, isWorking } = useCall();
+  const disabled = isWorking || !canReach;
 
   const startCall = async (): Promise<void> => {
     try {
@@ -34,7 +37,13 @@ export function CallButton({ calleeClerkId, type }: CallButtonProps): React.JSX.
 
   return (
     <div className="flex items-center">
-      <Button onClick={startCall} size="sm" variant={type === "video" ? "default" : "secondary"} disabled={isWorking}>
+      <Button
+        onClick={startCall}
+        size="sm"
+        variant={type === "video" ? "default" : "secondary"}
+        disabled={disabled}
+        title={!canReach ? "They need to add you to their inner circle before you can call." : undefined}
+      >
         {type === "video" ? <Video className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
         {type === "video" ? "Video" : "Voice"}
       </Button>

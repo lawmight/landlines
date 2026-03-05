@@ -47,6 +47,7 @@ export const ensureUser = mutation({
 
 /**
  * Lists accepted inner circle members for the requesting user.
+ * Includes canReach: true when the callee has accepted the viewer, so the viewer can place a call.
  */
 export const listInnerCircle = query({
   args: {},
@@ -58,6 +59,17 @@ export const listInnerCircle = query({
         q.eq("inviterClerkId", viewerClerkId).eq("status", "accepted")
       )
       .collect();
+
+    const allInvites = await ctx.db.query("invites").collect();
+    const reachableClerkIds = new Set(
+      allInvites
+        .filter(
+          (inv: any) =>
+            inv.status === "accepted" &&
+            inv.inviteeClerkId === viewerClerkId
+        )
+        .map((inv: any) => inv.inviterClerkId)
+    );
 
     const members = await Promise.all(
       acceptedInvites.map(async (invite) => {
@@ -81,7 +93,8 @@ export const listInnerCircle = query({
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
           username: user.username,
-          presence: isOnline ? "home" : "away"
+          presence: isOnline ? "home" : "away",
+          canReach: reachableClerkIds.has(user.clerkId)
         };
       })
     );

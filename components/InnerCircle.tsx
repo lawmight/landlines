@@ -21,7 +21,9 @@ export function InnerCircle(): React.JSX.Element {
           <Phone className="h-5 w-5" />
           Inner Circle
         </CardTitle>
-        <CardDescription>Only these people can directly reach you.</CardDescription>
+        <CardDescription>
+          Only these people can directly reach you. You can call only those who have added you to their inner circle.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
@@ -50,8 +52,13 @@ export function InnerCircle(): React.JSX.Element {
             </div>
 
             <div className="flex items-center gap-2">
-              <CallButton calleeClerkId={member.clerkId} type="voice" />
-              <CallButton calleeClerkId={member.clerkId} type="video" />
+              <CallButton calleeClerkId={member.clerkId} type="voice" canReach={member.canReach} />
+              <CallButton calleeClerkId={member.clerkId} type="video" canReach={member.canReach} />
+              {!member.canReach ? (
+                <span className="text-xs text-[var(--muted-foreground)]" title="They need to add you to their inner circle before you can call.">
+                  Add you to call
+                </span>
+              ) : null}
             </div>
           </div>
         ))}
