@@ -7,7 +7,7 @@ import { BillingCard } from "@/components/BillingCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { UserSync } from "@/components/UserSync";
-import { getProPrices } from "@/lib/polar";
+import { getProPrices } from "@/lib/stripe";
 
 export default async function SettingsPage(): Promise<React.JSX.Element> {
   const { userId } = await auth();

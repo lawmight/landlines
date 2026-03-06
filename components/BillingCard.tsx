@@ -8,14 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-import type { ProPrices } from "@/lib/polar";
+import type { ProPrices } from "@/lib/stripe";
 
 interface BillingCardProps {
   prices: ProPrices;
 }
 
-function buildCheckoutUrl(productId: string, email?: string, externalId?: string): string {
-  const params = new URLSearchParams({ products: productId });
+function buildCheckoutUrl(priceId: string, email?: string, externalId?: string): string {
+  const params = new URLSearchParams({ priceId });
   if (email) params.set("customerEmail", email);
   if (externalId) params.set("customerExternalId", externalId);
   return `/api/checkout?${params.toString()}`;
@@ -59,21 +59,26 @@ export function BillingCard({ prices }: BillingCardProps): React.JSX.Element {
         </Badge>
 
         {isPro ? (
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Manage your billing from your Polar account.
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="w-full text-sm text-[var(--muted-foreground)]">
+              Manage your Landlines Pro subscription in Stripe&apos;s customer portal.
+            </p>
+            <Button asChild>
+              <a href="/api/billing/portal">Manage billing</a>
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             {prices.monthly && (
               <Button asChild>
-                <a href={buildCheckoutUrl(prices.monthly.productId, email ?? undefined, clerkId ?? undefined)}>
+                <a href={buildCheckoutUrl(prices.monthly.priceId, email ?? undefined, clerkId ?? undefined)}>
                   Subscribe — {formatPrice(monthlyAmount, currency)}/mo
                 </a>
               </Button>
             )}
             {prices.annual && (
               <Button variant="outline" asChild>
-                <a href={buildCheckoutUrl(prices.annual.productId, email ?? undefined, clerkId ?? undefined)}>
+                <a href={buildCheckoutUrl(prices.annual.priceId, email ?? undefined, clerkId ?? undefined)}>
                   {formatPrice(annualAmount, currency)}/yr
                 </a>
               </Button>
