@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 import { PricingSection } from "@/components/PricingSection";
-import { getProPrices } from "@/lib/polar";
+import { getProPrices } from "@/lib/stripe";
 
 export default async function HomePage(): Promise<React.JSX.Element> {
   const prices = await getProPrices();

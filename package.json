@@ -23,8 +23,6 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.22.0",
-    "@polar-sh/nextjs": "^0.9.4",
-    "@polar-sh/sdk": "^0.45.1",
     "@radix-ui/react-slot": "^1.2.3",
     "@t3-oss/env-core": "^0.13.10",
     "@t3-oss/env-nextjs": "^0.13.10",
@@ -42,6 +40,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "sonner": "^2.0.7",
+    "stripe": "^20.4.0",
     "tailwind-merge": "^3.3.1",
     "twilio": "^5.8.0",
     "twilio-video": "^2.34.0",

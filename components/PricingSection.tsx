@@ -2,7 +2,7 @@
 
 import { useUser, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
-import type { ProPrices } from "@/lib/polar";
+import type { ProPrices } from "@/lib/stripe";
 
 interface PricingSectionProps {
   prices: ProPrices;
@@ -16,8 +16,8 @@ function formatPrice(amount: number, currency: string): string {
   }).format(amount);
 }
 
-function buildCheckoutUrl(productId: string, email?: string, externalId?: string): string {
-  const params = new URLSearchParams({ products: productId });
+function buildCheckoutUrl(priceId: string, email?: string, externalId?: string): string {
+  const params = new URLSearchParams({ priceId });
   if (email) params.set("customerEmail", email);
   if (externalId) params.set("customerExternalId", externalId);
   return `/api/checkout?${params.toString()}`;
@@ -44,6 +44,9 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
       </h2>
       <p className="anim-3 mt-4 text-center text-[15px] leading-[1.6] text-[var(--color-mid)]">
         No free trials. No gimmicks. Just private calling.
+      </p>
+      <p className="anim-3 mt-2 text-center text-[13px] leading-[1.6] text-[var(--color-mid)]">
+        Checkout opens on Stripe&apos;s hosted payment page with your brand settings applied.
       </p>
 
       <div className="anim-4 mt-12 grid gap-6 md:grid-cols-2">
@@ -85,7 +88,7 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
             <SignedIn>
               {prices.monthly ? (
                 <a
-                  href={buildCheckoutUrl(prices.monthly.productId, email ?? undefined, clerkId ?? undefined)}
+                  href={buildCheckoutUrl(prices.monthly.priceId, email ?? undefined, clerkId ?? undefined)}
                   className="landing-btn block w-full text-center"
                 >
                   Subscribe monthly
@@ -129,7 +132,7 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
             <SignedIn>
               {prices.annual ? (
                 <a
-                  href={buildCheckoutUrl(prices.annual.productId, email ?? undefined, clerkId ?? undefined)}
+                  href={buildCheckoutUrl(prices.annual.priceId, email ?? undefined, clerkId ?? undefined)}
                   className="landing-btn landing-btn-primary block w-full text-center"
                 >
                   Subscribe annually
