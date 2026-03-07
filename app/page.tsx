@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignInButton, UserButton } from "@clerk/nextjs";
 
+import { AuthShow } from "@/components/AuthShow";
 import { PricingSection } from "@/components/PricingSection";
 import { UserSync } from "@/components/UserSync";
 import { getProPrices } from "@/lib/stripe";
@@ -15,23 +16,23 @@ export default async function HomePage(): Promise<React.JSX.Element> {
           Landlines
         </Link>
         <div className="flex items-center gap-2">
-          <SignedOut>
+          <AuthShow when="signed-out" fallback={null}>
             <SignInButton mode="modal">
               <button className="landing-btn" type="button">
                 Sign in
               </button>
             </SignInButton>
-          </SignedOut>
-          <SignedIn>
+          </AuthShow>
+          <AuthShow when="signed-in" fallback={null}>
             <UserButton />
-          </SignedIn>
+          </AuthShow>
         </div>
       </nav>
 
       <main id="main">
-        <SignedIn>
+        <AuthShow when="signed-in" fallback={null}>
           <UserSync />
-        </SignedIn>
+        </AuthShow>
 
         <section className="flex flex-col items-center px-6 pb-16 pt-[clamp(4.5rem,10vh,7.5rem)]">
           <p className="anim-1 mb-8 text-[13px] uppercase tracking-[0.24em] text-[var(--color-mid)]">
@@ -76,24 +77,25 @@ export default async function HomePage(): Promise<React.JSX.Element> {
               Everyone else can&apos;t find you here.
             </p>
 
-            <SignedOut>
+            <AuthShow
+              when="signed-out"
+              fallback={
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link href="/dashboard" className="landing-btn landing-btn-primary">
+                    Open Dashboard
+                  </Link>
+                  <Link href="/invites" className="landing-btn landing-btn-ghost">
+                    Manage invites
+                  </Link>
+                </div>
+              }
+            >
               <SignInButton mode="modal">
                 <button className="landing-btn" type="button">
                   Request access
                 </button>
               </SignInButton>
-            </SignedOut>
-
-            <SignedIn>
-              <div className="flex flex-wrap items-center gap-3">
-                <Link href="/dashboard" className="landing-btn landing-btn-primary">
-                  Open Dashboard
-                </Link>
-                <Link href="/invites" className="landing-btn landing-btn-ghost">
-                  Manage invites
-                </Link>
-              </div>
-            </SignedIn>
+            </AuthShow>
           </div>
         </section>
       </main>
