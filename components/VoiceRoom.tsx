@@ -40,6 +40,7 @@ interface VoiceRoomProps {
 export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
   const router = useRouter();
   const { user } = useUser();
+  const userId = user?.id;
   const { endCall, failCall, recentCalls } = useCall();
 
   const [status, setStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
@@ -48,11 +49,14 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
 
   const deviceRef = useRef<VoiceDevice | null>(null);
   const connectionRef = useRef<VoiceConnection | null>(null);
+  const connectedRoomRef = useRef<string | null>(null);
+  const localExitRef = useRef(false);
+  const previousCallStatusRef = useRef<"ringing" | "active" | "ended" | "failed" | "missed" | null>(null);
 
   const isRoomIdValid = roomId.trim().length > 0;
   const durationLabel = useCallDuration(status === "connected");
 
-  usePresence(user?.id, roomId);
+  usePresence(userId, roomId);
 
   const currentCall = useMemo(
     () => recentCalls?.find((candidate) => String(candidate._id) === roomId || candidate.roomName === roomId),
@@ -60,31 +64,61 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
   );
 
   const counterpartClerkId = useMemo(() => {
-    if (!currentCall || !user?.id) {
+    if (!currentCall || !userId) {
       return undefined;
     }
 
-    return currentCall.callerClerkId === user.id ? currentCall.calleeClerkId : currentCall.callerClerkId;
-  }, [currentCall, user?.id]);
+    return currentCall.callerClerkId === userId ? currentCall.calleeClerkId : currentCall.callerClerkId;
+  }, [currentCall, userId]);
 
   const counterpart = useContactIdentity(counterpartClerkId);
-  const directionLabel = currentCall && user?.id ? (currentCall.callerClerkId === user.id ? "Outgoing line" : "Incoming line") : "Active line";
+  const directionLabel = currentCall && userId ? (currentCall.callerClerkId === userId ? "Outgoing line" : "Incoming line") : "Active line";
   const persistedCallId = currentCall?._id ? String(currentCall._id) : null;
+  const shouldConnect = currentCall?.status === "active";
 
   useEffect(() => {
-    if (!user || !isRoomIdValid) {
+    const nextStatus = currentCall?.status ?? null;
+    const previousStatus = previousCallStatusRef.current;
+    previousCallStatusRef.current = nextStatus;
+
+    if (!nextStatus || localExitRef.current || previousStatus === nextStatus) {
+      return;
+    }
+
+    if (nextStatus === "ended" || nextStatus === "failed" || nextStatus === "missed") {
+      connectionRef.current?.disconnect();
+      deviceRef.current?.disconnectAll();
+      deviceRef.current?.destroy();
+
+      const message =
+        nextStatus === "missed"
+          ? "Call timed out."
+          : nextStatus === "failed"
+            ? currentCall?.endReason ?? "Call failed."
+            : "Call ended.";
+      toast.success(message);
+      router.push("/dashboard");
+    }
+  }, [currentCall?.endReason, currentCall?.status, router]);
+
+  useEffect(() => {
+    if (!userId || !isRoomIdValid || !shouldConnect) {
+      return;
+    }
+    if (connectedRoomRef.current === roomId) {
       return;
     }
 
     let mounted = true;
 
     const connectVoice = async (): Promise<void> => {
+      connectedRoomRef.current = roomId;
       setStatus("connecting");
       setNetworkState("good");
       setErrorMessage(null);
 
       try {
-        const tokens = await fetchTwilioTokens(user.id, roomId, "voice");
+        const tokens = await fetchTwilioTokens(userId, roomId, "voice");
         const VoiceSdk = await import("@twilio/voice-sdk");
         const device = new VoiceSdk.Device(tokens.voiceToken) as unknown as VoiceDevice;
 
@@ -97,7 +131,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
 
         device.on("tokenWillExpire", async () => {
           try {
-            const refreshedTokens = await fetchTwilioTokens(user.id, roomId, "voice");
+            const refreshedTokens = await fetchTwilioTokens(userId, roomId, "voice");
             device.updateToken(refreshedTokens.voiceToken);
           } catch (caught) {
             const message = caught instanceof Error ? caught.message : "Token refresh failed.";
@@ -155,17 +189,22 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
       }
     };
 
-    void connectVoice();
+    const connectTimer = window.setTimeout(() => {
+      void connectVoice();
+    }, 0);
 
     return () => {
       mounted = false;
+      window.clearTimeout(connectTimer);
+      connectedRoomRef.current = null;
       connectionRef.current?.disconnect();
       deviceRef.current?.disconnectAll();
       deviceRef.current?.destroy();
     };
-  }, [failCall, isRoomIdValid, roomId, user]);
+  }, [failCall, isRoomIdValid, roomId, shouldConnect, userId]);
 
   const handleHangup = async (): Promise<void> => {
+    localExitRef.current = true;
     connectionRef.current?.disconnect();
     deviceRef.current?.disconnectAll();
 

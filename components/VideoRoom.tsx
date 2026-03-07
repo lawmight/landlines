@@ -49,10 +49,14 @@ function getInitials(displayName: string): string {
 export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
   const router = useRouter();
   const { user } = useUser();
+  const userId = user?.id;
   const { endCall, failCall, recentCalls } = useCall();
 
   const localMediaRef = useRef<HTMLDivElement | null>(null);
   const remoteMediaRef = useRef<HTMLDivElement | null>(null);
+  const connectedRoomRef = useRef<string | null>(null);
+  const localExitRef = useRef(false);
+  const previousCallStatusRef = useRef<"ringing" | "active" | "ended" | "failed" | "missed" | null>(null);
 
   const [room, setRoom] = useState<Room | null>(null);
   const [status, setStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
@@ -63,21 +67,45 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
   const isRoomIdValid = roomId.trim().length > 0;
   const durationLabel = useCallDuration(status === "connected");
 
-  usePresence(user?.id, roomId);
+  usePresence(userId, roomId);
 
   const currentCall = useMemo(
     () => recentCalls?.find((candidate) => String(candidate._id) === roomId || candidate.roomName === roomId),
     [recentCalls, roomId]
   );
   const persistedCallId = currentCall?._id ? String(currentCall._id) : null;
+  const shouldConnect = currentCall?.status === "active";
+
+  useEffect(() => {
+    const nextStatus = currentCall?.status ?? null;
+    const previousStatus = previousCallStatusRef.current;
+    previousCallStatusRef.current = nextStatus;
+
+    if (!nextStatus || localExitRef.current || previousStatus === nextStatus) {
+      return;
+    }
+
+    if (nextStatus === "ended" || nextStatus === "failed" || nextStatus === "missed") {
+      room?.disconnect();
+
+      const message =
+        nextStatus === "missed"
+          ? "Call timed out."
+          : nextStatus === "failed"
+            ? currentCall?.endReason ?? "Call failed."
+            : "Call ended.";
+      toast.success(message);
+      router.push("/dashboard");
+    }
+  }, [currentCall?.endReason, currentCall?.status, room, router]);
 
   const counterpartClerkId = useMemo(() => {
-    if (!currentCall || !user?.id) {
+    if (!currentCall || !userId) {
       return undefined;
     }
 
-    return currentCall.callerClerkId === user.id ? currentCall.calleeClerkId : currentCall.callerClerkId;
-  }, [currentCall, user?.id]);
+    return currentCall.callerClerkId === userId ? currentCall.calleeClerkId : currentCall.callerClerkId;
+  }, [currentCall, userId]);
 
   const counterpart = useContactIdentity(counterpartClerkId);
   const localDisplayName = user?.fullName ?? user?.username ?? "You";
@@ -124,7 +152,10 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
   );
 
   useEffect(() => {
-    if (!user || !isRoomIdValid) {
+    if (!userId || !isRoomIdValid || !shouldConnect) {
+      return;
+    }
+    if (connectedRoomRef.current === roomId) {
       return;
     }
 
@@ -133,12 +164,13 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
     const localTracksToStop: LocalTrack[] = [];
 
     const connectRoom = async (): Promise<void> => {
+      connectedRoomRef.current = roomId;
       setStatus("connecting");
       setNetworkState("good");
       setErrorMessage(null);
 
       try {
-        const { videoToken, roomName } = await fetchTwilioTokens(user.id, roomId, mode);
+        const { videoToken, roomName } = await fetchTwilioTokens(userId, roomId, mode);
         const Video = await import("twilio-video");
 
         let localTracks: LocalTrack[] = [];
@@ -237,10 +269,14 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
       }
     };
 
-    void connectRoom();
+    const connectTimer = window.setTimeout(() => {
+      void connectRoom();
+    }, 0);
 
     return () => {
       mounted = false;
+      window.clearTimeout(connectTimer);
+      connectedRoomRef.current = null;
       activeRoom?.disconnect();
       localTracksToStop.forEach((track) => {
         const stoppableTrack = track as LocalTrack & { stop?: () => void };
@@ -248,9 +284,10 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
       });
       clearMediaElements();
     };
-  }, [attachParticipantTracks, attachTrackToContainer, clearMediaElements, failCall, isRoomIdValid, mode, roomId, user]);
+  }, [attachParticipantTracks, attachTrackToContainer, clearMediaElements, failCall, isRoomIdValid, mode, roomId, shouldConnect, userId]);
 
   const handleLeave = async (): Promise<void> => {
+    localExitRef.current = true;
     room?.disconnect();
 
     if (persistedCallId) {

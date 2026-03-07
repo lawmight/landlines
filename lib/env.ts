@@ -22,6 +22,7 @@ export const env = createEnv({
     TWILIO_API_SECRET: nonEmptyString.optional(),
     TWILIO_AUTH_TOKEN: nonEmptyString,
     TWILIO_TWIML_APP_SID: nonEmptyString,
+    TWILIO_STATUS_CALLBACK_BASE_URL: nonEmptyString.optional(),
     TWILIO_VIDEO_ROOM_TYPE: nonEmptyString.optional(),
   },
   client: {
@@ -52,6 +53,7 @@ export const env = createEnv({
     TWILIO_API_SECRET: process.env.TWILIO_API_SECRET,
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
     TWILIO_TWIML_APP_SID: process.env.TWILIO_TWIML_APP_SID,
+    TWILIO_STATUS_CALLBACK_BASE_URL: process.env.TWILIO_STATUS_CALLBACK_BASE_URL,
     TWILIO_VIDEO_ROOM_TYPE: process.env.TWILIO_VIDEO_ROOM_TYPE,
   },
   emptyStringAsUndefined: true,

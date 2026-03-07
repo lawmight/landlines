@@ -1,6 +1,6 @@
 "use client";
 
-import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignInButton, useAuth } from "@clerk/nextjs";
 
 import { buildCheckoutUrl } from "@/lib/billing";
 import type { ProPrices } from "@/lib/stripe";
@@ -18,6 +18,7 @@ function formatPrice(amount: number, currency: string): string {
 }
 
 export function PricingSection({ prices }: PricingSectionProps): React.JSX.Element {
+  const { isSignedIn } = useAuth();
   const monthlyAmount = prices.monthly?.amount ?? 9;
   const annualAmount = prices.annual?.amount ?? 99;
   const currency = prices.monthly?.currency ?? prices.annual?.currency ?? "eur";
@@ -65,15 +66,13 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
           </ul>
 
           <div className="mt-8">
-            <SignedOut>
+            {!isSignedIn ? (
               <SignInButton mode="modal">
                 <button className="landing-btn w-full" type="button">
                   Get started
                 </button>
               </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              {prices.monthly ? (
+            ) : prices.monthly ? (
                 <a
                   href={buildCheckoutUrl("monthly")}
                   className="landing-btn block w-full text-center"
@@ -84,8 +83,8 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
                 <span className="landing-btn block w-full cursor-not-allowed text-center opacity-50">
                   Unavailable
                 </span>
-              )}
-            </SignedIn>
+              )
+            }
           </div>
         </div>
 
@@ -109,15 +108,13 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
           </p>
 
           <div className="mt-8">
-            <SignedOut>
+            {!isSignedIn ? (
               <SignInButton mode="modal">
                 <button className="landing-btn landing-btn-primary w-full" type="button">
                   Get started
                 </button>
               </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              {prices.annual ? (
+            ) : prices.annual ? (
                 <a
                   href={buildCheckoutUrl("annual")}
                   className="landing-btn landing-btn-primary block w-full text-center"
@@ -128,8 +125,8 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
                 <span className="landing-btn landing-btn-primary block w-full cursor-not-allowed text-center opacity-50">
                   Unavailable
                 </span>
-              )}
-            </SignedIn>
+              )
+            }
           </div>
         </div>
       </div>

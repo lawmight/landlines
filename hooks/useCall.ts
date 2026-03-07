@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 
@@ -65,7 +65,7 @@ export function useCall(): {
   /**
    * Starts a call and returns the created call and room IDs.
    */
-  const initiateCall = async (calleeClerkId: string, type: "voice" | "video"): Promise<{ callId: string; roomName: string }> => {
+  const initiateCall = useCallback(async (calleeClerkId: string, type: "voice" | "video"): Promise<{ callId: string; roomName: string }> => {
     if (!user) {
       throw new Error("You must be signed in to start a call.");
     }
@@ -83,12 +83,12 @@ export function useCall(): {
     } finally {
       setIsWorking(false);
     }
-  };
+  }, [initiateCallMutation, user]);
 
   /**
    * Accepts an incoming ringing call.
    */
-  const acceptCall = async (callId: string): Promise<void> => {
+  const acceptCall = useCallback(async (callId: string): Promise<void> => {
     if (!user) {
       throw new Error("You must be signed in to accept a call.");
     }
@@ -99,23 +99,23 @@ export function useCall(): {
     } finally {
       setIsWorking(false);
     }
-  };
+  }, [acceptCallMutation, user]);
 
   /**
    * Ignores an incoming call without joining.
    */
-  const ignoreCall = async (callId: string): Promise<void> => {
+  const ignoreCall = useCallback(async (callId: string): Promise<void> => {
     if (!user) {
       throw new Error("You must be signed in to ignore a call.");
     }
 
     await ignoreCallMutation({ callId: callId as Id<"calls"> });
-  };
+  }, [ignoreCallMutation, user]);
 
   /**
    * Ends an active call and records an optional reason.
    */
-  const endCall = async (callId: string, reason?: string): Promise<void> => {
+  const endCall = useCallback(async (callId: string, reason?: string): Promise<void> => {
     if (!user) {
       throw new Error("You must be signed in to end a call.");
     }
@@ -124,12 +124,12 @@ export function useCall(): {
       callId: callId as Id<"calls">,
       reason
     });
-  };
+  }, [endCallMutation, user]);
 
   /**
    * Flags a call as failed due to a media or network issue.
    */
-  const failCall = async (callId: string, reason: string): Promise<void> => {
+  const failCall = useCallback(async (callId: string, reason: string): Promise<void> => {
     if (!user) {
       throw new Error("You must be signed in to fail a call.");
     }
@@ -138,16 +138,19 @@ export function useCall(): {
       callId: callId as Id<"calls">,
       reason
     });
-  };
+  }, [failCallMutation, user]);
 
-  return {
-    incomingCall,
-    recentCalls,
-    isWorking,
-    initiateCall,
-    acceptCall,
-    ignoreCall,
-    endCall,
-    failCall
-  };
+  return useMemo(
+    () => ({
+      incomingCall,
+      recentCalls,
+      isWorking,
+      initiateCall,
+      acceptCall,
+      ignoreCall,
+      endCall,
+      failCall
+    }),
+    [acceptCall, endCall, failCall, ignoreCall, incomingCall, initiateCall, isWorking, recentCalls]
+  );
 }

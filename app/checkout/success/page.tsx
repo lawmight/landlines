@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { Show } from "@clerk/nextjs";
 
 import { UserSync } from "@/components/UserSync";
 
@@ -28,7 +28,7 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <SignedIn>
+          <Show when="signed-in">
             <UserSync />
             <Link href="/dashboard" className="landing-btn landing-btn-primary">
               Open Dashboard
@@ -36,12 +36,12 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
             <Link href="/settings" className="landing-btn landing-btn-ghost">
               View settings
             </Link>
-          </SignedIn>
-          <SignedOut>
+          </Show>
+          <Show when="signed-out">
             <Link href="/" className="landing-btn landing-btn-primary">
               Go home
             </Link>
-          </SignedOut>
+          </Show>
         </div>
       </main>
     </div>

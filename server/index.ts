@@ -2,6 +2,7 @@ import express from "express";
 import helmet from "helmet";
 
 import { logger } from "../lib/logger";
+import { resolveCorsOrigin } from "./lib/cors";
 import { serverEnv } from "./lib/env";
 import { twilioRouter } from "./routes/twilio";
 import { webhookRouter } from "./routes/webhooks";
@@ -17,10 +18,21 @@ app.use(
   })
 );
 
-app.use((_, res, next) => {
-  res.header("Access-Control-Allow-Origin", serverEnv.CORS_ORIGIN ?? "http://localhost:3000");
+app.use((req, res, next) => {
+  const requestOrigin = req.header("origin") ?? undefined;
+  const allowedOrigin = resolveCorsOrigin(requestOrigin, serverEnv.CORS_ORIGIN);
+
+  res.header("Vary", "Origin");
+  if (allowedOrigin) {
+    res.header("Access-Control-Allow-Origin", allowedOrigin);
+  }
   res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
   next();
 });
 
