@@ -31,6 +31,12 @@ All credentials live in `.env.local`. Clerk and Convex keys must be present for 
 - The checkout route uses Stripe Hosted Checkout with `managed_payments.enabled = true` and the preview API version `2026-03-04.preview`.
 - The webhook endpoint is `POST /api/webhooks/stripe` and updates Convex `users.subscriptionTier` between `free` and `pro`.
 
+### Subscription gating
+
+- Dashboard, Invites, and Call room require an active Pro subscription. Free or unauthenticated users are redirected to `/settings` where they can upgrade via BillingCard.
+- `POST /api/twilio/token` returns `403` with `{ error: "Active subscription required for calling." }` when the user is not Pro, so voice/video tokens cannot be obtained without a subscription.
+- Enforcement is server-side only via `lib/subscription.ts` (`getSubscriptionTierForRequest`, `requirePro`), using Clerk auth and Convex `api.users.getProfile`. Ensure the Clerk Dashboard has a JWT template named `"convex"` with audience `convex` for Convex auth.
+
 ### Gotchas
 
 - The `convex/_generated/*` files are scaffolding placeholders. Running `npx convex dev` regenerates them with strongly-typed API references. Without this, runtime call/invite/presence features will fail.
