@@ -6,6 +6,7 @@ convex/.env.local
 dist
 coverage
 *.log
+logs
 .cursor
 .vercel
 .env*.local
