@@ -72,6 +72,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
   }, [currentCall, userId]);
 
   const counterpart = useContactIdentity(counterpartClerkId);
+  const callerIdentity = useContactIdentity(currentCall?.callerClerkId);
   const directionLabel = currentCall && userId ? (currentCall.callerClerkId === userId ? "Outgoing line" : "Incoming line") : "Active line";
   const persistedCallId = currentCall?._id ? String(currentCall._id) : null;
   const shouldConnect = currentCall?.status === "active";
@@ -286,7 +287,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
             value={networkState === "good" ? "Stable" : "Recovering"}
             tone={networkState === "good" ? "success" : "danger"}
           />
-          <CallFact label="Room" value={roomId} />
+          <CallFact label="Started by" value={callerIdentity.displayName ?? "—"} />
           <CallFact label="Direction" value={directionLabel} />
         </CallFactGrid>
       </CallPanel>

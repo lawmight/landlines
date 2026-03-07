@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 
 import { PricingSection } from "@/components/PricingSection";
 import { UserSync } from "@/components/UserSync";
@@ -15,23 +15,23 @@ export default async function HomePage(): Promise<React.JSX.Element> {
           Landlines
         </Link>
         <div className="flex items-center gap-2">
-          <Show when="signed-out">
+          <SignedOut>
             <SignInButton mode="modal">
               <button className="landing-btn" type="button">
                 Sign in
               </button>
             </SignInButton>
-          </Show>
-          <Show when="signed-in">
+          </SignedOut>
+          <SignedIn>
             <UserButton />
-          </Show>
+          </SignedIn>
         </div>
       </nav>
 
       <main id="main">
-        <Show when="signed-in">
+        <SignedIn>
           <UserSync />
-        </Show>
+        </SignedIn>
 
         <section className="flex flex-col items-center px-6 pb-16 pt-[clamp(4.5rem,10vh,7.5rem)]">
           <p className="anim-1 mb-8 text-[13px] uppercase tracking-[0.24em] text-[var(--color-mid)]">
@@ -76,15 +76,15 @@ export default async function HomePage(): Promise<React.JSX.Element> {
               Everyone else can&apos;t find you here.
             </p>
 
-            <Show when="signed-out">
+            <SignedOut>
               <SignInButton mode="modal">
                 <button className="landing-btn" type="button">
                   Request access
                 </button>
               </SignInButton>
-            </Show>
+            </SignedOut>
 
-            <Show when="signed-in">
+            <SignedIn>
               <div className="flex flex-wrap items-center gap-3">
                 <Link href="/dashboard" className="landing-btn landing-btn-primary">
                   Open Dashboard
@@ -93,7 +93,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
                   Manage invites
                 </Link>
               </div>
-            </Show>
+            </SignedIn>
           </div>
         </section>
       </main>

@@ -108,6 +108,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
   }, [currentCall, userId]);
 
   const counterpart = useContactIdentity(counterpartClerkId);
+  const callerIdentity = useContactIdentity(currentCall?.callerClerkId);
   const localDisplayName = user?.fullName ?? user?.username ?? "You";
   const localInitials = useMemo(() => getInitials(localDisplayName), [localDisplayName]);
 
@@ -392,7 +393,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
         <CallFactGrid className="md:grid-cols-4">
           <CallFact label="Duration" value={durationLabel} tone="accent" />
           <CallFact label="Participants" value={participantCount > 0 ? `${participantCount + 1} live` : "Waiting"} />
-          <CallFact label="Room" value={roomId} />
+          <CallFact label="Started by" value={callerIdentity.displayName ?? "—"} />
           <CallFact label="Security" value="Twilio room" tone="success" />
         </CallFactGrid>
       </CallPanel>
@@ -485,7 +486,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
                   </span>
                 }
               />
-              <CallFact label="Room ID" value={roomId} />
+              <CallFact label="Started by" value={callerIdentity.displayName ?? "—"} />
             </CallFactGrid>
           </div>
         </CallPanel>
