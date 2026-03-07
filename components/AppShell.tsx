@@ -49,7 +49,7 @@ export function AppShell({
               </Link>
             ))}
           </div>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </div>
       </nav>
       <main id="main" className={cn("mx-auto w-full px-6 py-10", maxWidth)}>

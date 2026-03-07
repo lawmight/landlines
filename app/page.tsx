@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 
 import { PricingSection } from "@/components/PricingSection";
 import { UserSync } from "@/components/UserSync";
@@ -15,23 +15,23 @@ export default async function HomePage(): Promise<React.JSX.Element> {
           Landlines
         </Link>
         <div className="flex items-center gap-2">
-          <SignedOut>
+          <Show when="signed-out">
             <SignInButton mode="modal">
               <button className="landing-btn" type="button">
                 Sign in
               </button>
             </SignInButton>
-          </SignedOut>
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+          </Show>
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
         </div>
       </nav>
 
       <main id="main">
-        <SignedIn>
+        <Show when="signed-in">
           <UserSync />
-        </SignedIn>
+        </Show>
 
         <section className="flex flex-col items-center px-6 pb-16 pt-[clamp(4.5rem,10vh,7.5rem)]">
           <p className="anim-1 mb-8 text-[13px] uppercase tracking-[0.24em] text-[var(--color-mid)]">
@@ -76,15 +76,15 @@ export default async function HomePage(): Promise<React.JSX.Element> {
               Everyone else can&apos;t find you here.
             </p>
 
-            <SignedOut>
+            <Show when="signed-out">
               <SignInButton mode="modal">
                 <button className="landing-btn" type="button">
                   Request access
                 </button>
               </SignInButton>
-            </SignedOut>
+            </Show>
 
-            <SignedIn>
+            <Show when="signed-in">
               <div className="flex flex-wrap items-center gap-3">
                 <Link href="/dashboard" className="landing-btn landing-btn-primary">
                   Open Dashboard
@@ -93,7 +93,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
                   Manage invites
                 </Link>
               </div>
-            </SignedIn>
+            </Show>
           </div>
         </section>
       </main>
