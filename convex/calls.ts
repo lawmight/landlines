@@ -86,21 +86,10 @@ export const listCallsForUser = query({
   handler: async (ctx) => {
     const userClerkId = await requireAuthenticatedClerkId(ctx);
     const allCalls = await ctx.db.query("calls").collect();
-    const callerCalls = allCalls.filter((call: any) => call.callerClerkId === userClerkId && call.status === "active");
-    const calleeCalls = allCalls.filter((call: any) => call.calleeClerkId === userClerkId && call.status === "active");
-    const ringingCalls = allCalls.filter(
-      (call: any) => call.calleeClerkId === userClerkId && call.status === "ringing"
-    );
-    const completedCallerCalls = allCalls.filter(
-      (call: any) => call.callerClerkId === userClerkId && call.status === "ended"
-    );
-    const completedCalleeCalls = allCalls.filter(
-      (call: any) => call.calleeClerkId === userClerkId && call.status === "ended"
-    );
 
-    return [...callerCalls, ...calleeCalls, ...ringingCalls, ...completedCallerCalls, ...completedCalleeCalls].sort(
-      (a, b) => b.createdAt - a.createdAt
-    );
+    return allCalls
+      .filter((call: any) => call.callerClerkId === userClerkId || call.calleeClerkId === userClerkId)
+      .sort((a, b) => b.createdAt - a.createdAt);
   }
 });
 

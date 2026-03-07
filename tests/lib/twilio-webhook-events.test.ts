@@ -34,6 +34,35 @@ describe("twilio webhook schema + mutation mapping", () => {
     });
   });
 
+  it("maps conference callback events for voice lifecycle", () => {
+    const conferenceEndPayload = voiceWebhookSchema.parse({
+      FriendlyName: "abc123",
+      StatusCallbackEvent: "conference-end",
+      ReasonConferenceEnded: "last_participant_left"
+    });
+    const participantLeavePayload = voiceWebhookSchema.parse({
+      FriendlyName: "abc123",
+      StatusCallbackEvent: "participant-leave",
+      ParticipantCallStatus: "completed",
+      ReasonParticipantLeft: "participant_hung_up"
+    });
+
+    expect(mapVoiceWebhookToMutation(conferenceEndPayload)).toEqual({
+      path: "calls:internalEndCallByRoom",
+      args: {
+        roomName: "abc123",
+        reason: "voice_last-participant-left"
+      }
+    });
+    expect(mapVoiceWebhookToMutation(participantLeavePayload)).toEqual({
+      path: "calls:internalEndCallByRoom",
+      args: {
+        roomName: "abc123",
+        reason: "voice_participant_hung_up"
+      }
+    });
+  });
+
   it("maps video failure and completion events", () => {
     const failPayload = videoWebhookSchema.parse({
       RoomName: "room_7",
@@ -58,6 +87,15 @@ describe("twilio webhook schema + mutation mapping", () => {
         reason: "video_room-ended"
       }
     });
+  });
+
+  it("ignores transient participant disconnects for video", () => {
+    const disconnectPayload = videoWebhookSchema.parse({
+      RoomName: "room_7",
+      StatusCallbackEvent: "participant-disconnected"
+    });
+
+    expect(mapVideoWebhookToMutation(disconnectPayload)).toBeNull();
   });
 
   it("returns null when no room name is provided", () => {
