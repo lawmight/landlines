@@ -1,5 +1,6 @@
 import twilio from "twilio";
 
+import { normalizeTwilioVideoRoomType } from "../../lib/twilio-room-type";
 import { serverEnv, serverTwilioApiKeySecret, serverTwilioApiKeySid } from "./env";
 
 const accountSid = serverEnv.TWILIO_ACCOUNT_SID;
@@ -7,10 +8,7 @@ const authToken = serverEnv.TWILIO_AUTH_TOKEN;
 const apiKey = serverTwilioApiKeySid();
 const apiSecret = serverTwilioApiKeySecret();
 const twimlAppSid = serverEnv.TWILIO_TWIML_APP_SID;
-// Twilio deprecated group-small and other legacy types (Oct 2024). Use "group" for Group Rooms.
-const DEPRECATED_ROOM_TYPES = ["group-small", "peer-to-peer", "peer-to-peer-mesh"];
-const roomTypeRaw = serverEnv.TWILIO_VIDEO_ROOM_TYPE ?? "group";
-const roomType = DEPRECATED_ROOM_TYPES.includes(roomTypeRaw) ? "group" : roomTypeRaw || "group";
+const roomType = normalizeTwilioVideoRoomType(serverEnv.TWILIO_VIDEO_ROOM_TYPE);
 
 const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;

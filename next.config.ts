@@ -72,10 +72,6 @@ const nextConfig: NextConfig = {
       {
         key: "X-Content-Type-Options",
         value: "nosniff"
-      },
-      {
-        key: "Permissions-Policy",
-        value: "camera=(self), microphone=(self), geolocation=()"
       }
     ];
 
@@ -83,6 +79,24 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: baseHeaders
+      },
+      {
+        source: "/call/:path*",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value: "camera=(self), microphone=(self), geolocation=()"
+          }
+        ]
+      },
+      {
+        source: "/((?!call/).*)",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()"
+          }
+        ]
       }
     ];
   }

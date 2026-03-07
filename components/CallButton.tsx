@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Phone, Video } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,16 +18,16 @@ interface CallButtonProps {
  * Disabled when canReach is false (callee has not added you to their inner circle).
  */
 export function CallButton({ calleeClerkId, type, canReach = true }: CallButtonProps): React.JSX.Element {
-  const router = useRouter();
   const { initiateCall, isWorking } = useCall();
   const disabled = isWorking || !canReach;
 
   const startCall = async (): Promise<void> => {
     try {
       const created = await initiateCall(calleeClerkId, type);
+      const callUrl = `/call/${created.callId}?mode=${type}`;
       trackEvent("call_started", { mode: type });
       toast.success(`${type === "video" ? "Video" : "Voice"} call started.`);
-      router.push(`/call/${created.callId}?mode=${type}`);
+      window.location.assign(callUrl);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Unable to start call.";
       toast.error(message);

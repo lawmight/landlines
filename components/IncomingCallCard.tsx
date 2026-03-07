@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Phone, PhoneOff, Video } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,7 +14,6 @@ import { Button } from "@/components/ui/button";
  * Reactive incoming-call card shown when a callee is ringing.
  */
 export function IncomingCallCard(): React.JSX.Element | null {
-  const router = useRouter();
   const { incomingCall, acceptCall, ignoreCall, isWorking } = useCall();
   const caller = useContactIdentity(incomingCall?.callerClerkId);
 
@@ -26,9 +24,10 @@ export function IncomingCallCard(): React.JSX.Element | null {
   const onAccept = async (): Promise<void> => {
     try {
       await acceptCall(String(incomingCall._id));
+      const callUrl = `/call/${String(incomingCall._id)}?mode=${incomingCall.type}`;
       trackEvent("call_accepted", { mode: incomingCall.type });
       toast.success("Call accepted.");
-      router.push(`/call/${String(incomingCall._id)}?mode=${incomingCall.type}`);
+      window.location.assign(callUrl);
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Could not accept call.");
     }

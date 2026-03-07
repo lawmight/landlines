@@ -8,6 +8,7 @@ import twilio from "twilio";
 import { z } from "zod";
 
 import { env, twilioApiKeySecret, twilioApiKeySid } from "@/lib/env";
+import { normalizeTwilioVideoRoomType } from "@/lib/twilio-room-type";
 
 const accountSid = env.TWILIO_ACCOUNT_SID;
 const authToken = env.TWILIO_AUTH_TOKEN;
@@ -15,9 +16,7 @@ const apiKey = twilioApiKeySid();
 const apiSecret = twilioApiKeySecret();
 const twimlAppSid = env.TWILIO_TWIML_APP_SID;
 
-const DEPRECATED_ROOM_TYPES = ["[REDACTED]", "peer-to-peer", "peer-to-peer-mesh"];
-const roomTypeRaw = env.TWILIO_VIDEO_ROOM_TYPE ?? "group";
-const roomType = DEPRECATED_ROOM_TYPES.includes(roomTypeRaw) ? "group" : roomTypeRaw || "group";
+const roomType = normalizeTwilioVideoRoomType(env.TWILIO_VIDEO_ROOM_TYPE);
 
 const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;

@@ -1,5 +1,5 @@
 const DEFAULT_LOOPBACK_ORIGIN = "http://localhost:3000";
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1"]);
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 function normalizeOrigin(origin: string): string | null {
   try {
@@ -17,7 +17,7 @@ function getLoopbackEquivalentOrigins(origin: string): string[] {
 
   return Array.from(
     new Set(
-      ["localhost", "127.0.0.1"].map((hostname) => {
+      ["localhost", "127.0.0.1", "[::1]"].map((hostname) => {
         const url = new URL(origin);
         url.hostname = hostname;
         return url.origin;

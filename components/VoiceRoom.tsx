@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { AlertTriangle, Clock3, PhoneCall, PhoneOff, ShieldCheck, UserRound, Wifi, WifiOff } from "lucide-react";
@@ -39,6 +39,14 @@ interface VoiceRoomProps {
  */
 export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
   const router = useRouter();
+  const navigateToDashboard = useCallback((): void => {
+    if (typeof window !== "undefined") {
+      window.location.assign("/dashboard");
+      return;
+    }
+    router.push("/dashboard");
+  }, [router]);
+
   const { user } = useUser();
   const userId = user?.id;
   const { endCall, failCall, recentCalls } = useCall();
@@ -97,9 +105,9 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
             ? currentCall?.endReason ?? "Call failed."
             : "Call ended.";
       toast.success(message);
-      router.push("/dashboard");
+      navigateToDashboard();
     }
-  }, [currentCall?.endReason, currentCall?.status, router]);
+  }, [currentCall?.endReason, currentCall?.status, navigateToDashboard]);
 
   useEffect(() => {
     if (!userId || !isRoomIdValid || !shouldConnect) {
@@ -214,7 +222,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
 
     trackEvent("call_ended", { mode: "voice" });
     toast.success("Call ended.");
-    router.push("/dashboard");
+    navigateToDashboard();
   };
 
   const connectionLabel =
@@ -236,7 +244,7 @@ export function VoiceRoom({ roomId }: VoiceRoomProps): React.JSX.Element {
         title="This room cannot be opened."
         description="The room identifier is missing or malformed, so the call surface cannot connect safely."
       >
-        <Button variant="outline" onClick={() => router.push("/dashboard")} className="rounded-full px-6">
+        <Button variant="outline" onClick={navigateToDashboard} className="rounded-full px-6">
           Back to dashboard
         </Button>
       </CallPanel>

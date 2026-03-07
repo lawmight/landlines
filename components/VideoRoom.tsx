@@ -48,6 +48,14 @@ function getInitials(displayName: string): string {
  */
 export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
   const router = useRouter();
+  const navigateToDashboard = useCallback((): void => {
+    if (typeof window !== "undefined") {
+      window.location.assign("/dashboard");
+      return;
+    }
+    router.push("/dashboard");
+  }, [router]);
+
   const { user } = useUser();
   const userId = user?.id;
   const { endCall, failCall, recentCalls } = useCall();
@@ -95,9 +103,9 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
             ? currentCall?.endReason ?? "Call failed."
             : "Call ended.";
       toast.success(message);
-      router.push("/dashboard");
+      navigateToDashboard();
     }
-  }, [currentCall?.endReason, currentCall?.status, room, router]);
+  }, [currentCall?.endReason, currentCall?.status, navigateToDashboard, room]);
 
   const counterpartClerkId = useMemo(() => {
     if (!currentCall || !userId) {
@@ -296,7 +304,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
 
     trackEvent("call_ended", { mode });
     toast.success("Call ended.");
-    router.push("/dashboard");
+    navigateToDashboard();
   };
 
   const connectionLabel =
@@ -328,7 +336,7 @@ export function VideoRoom({ roomId, mode }: VideoRoomProps): React.JSX.Element {
         title="This room cannot be opened."
         description="The room identifier is missing or malformed, so the call surface cannot connect safely."
       >
-        <Button variant="outline" onClick={() => router.push("/dashboard")} className="rounded-full px-6">
+        <Button variant="outline" onClick={navigateToDashboard} className="rounded-full px-6">
           Back to dashboard
         </Button>
       </CallPanel>

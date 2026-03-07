@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const voiceWebhookSchema = z.object({
+  AccountSid: z.string().optional(),
   CallSid: z.string().optional(),
   CallStatus: z.string().optional(),
   ConferenceSid: z.string().optional(),
@@ -16,6 +17,7 @@ export const voiceWebhookSchema = z.object({
 });
 
 export const videoWebhookSchema = z.object({
+  AccountSid: z.string().optional(),
   StatusCallbackEvent: z.string().optional(),
   RoomName: z.string().optional(),
   RoomSid: z.string().optional(),
