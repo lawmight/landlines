@@ -7,15 +7,18 @@ import { InnerCircle } from "@/components/InnerCircle";
 import { InviteModal } from "@/components/InviteModal";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { UserSync } from "@/components/UserSync";
+import { requirePro } from "@/lib/subscription";
 
 /**
  * Auth-protected dashboard for inner-circle management and call activity.
+ * Requires Pro subscription; free users are redirected to Settings to upgrade.
  */
 export default async function DashboardPage(): Promise<React.JSX.Element> {
   const { userId } = await auth();
   if (!userId) {
     redirect("/");
   }
+  await requirePro();
 
   return (
     <AppShell activeSection="dashboard" maxWidth="max-w-5xl">
