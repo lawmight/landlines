@@ -10,3 +10,5 @@ logs
 .cursor
 .vercel
 .env*.local
+env_val.txt
+tsconfig.tsbuildinfo
