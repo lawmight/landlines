@@ -30,6 +30,7 @@ All credentials live in `.env.local`. Clerk and Convex keys must be present for 
 - **Required for webhook sync:** `STRIPE_WEBHOOK_SECRET`.
 - The checkout route uses Stripe Hosted Checkout with `managed_payments.enabled = true` and the preview API version `2026-03-04.preview`.
 - The webhook endpoint is `POST /api/webhooks/stripe` and updates Convex `users.subscriptionTier` between `free` and `pro`.
+- **Optional:** `LANDLINES_REDEEM_CODES` — comma-separated list of codes (e.g. `my-secret-code,dev-pro-2024`). When set, a "Redeem code" section appears on Settings for non-Pro users; submitting a valid code sets their Convex `subscriptionTier` to `pro` without going through Stripe (useful for dev or personal accounts). Codes are matched case-insensitively; the list is server-only and never exposed to the client.
 
 ### Subscription gating
 
