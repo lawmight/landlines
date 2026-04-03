@@ -1,5 +1,33 @@
 import type { NextConfig } from "next";
 
+const LOOPBACK_HOSTS = ["localhost", "127.0.0.1"] as const;
+
+function getAllowedConnectSources(): string {
+  const sources = new Set(["'self'", "https:", "wss:", "ws:"]);
+  const signalingBaseUrl = process.env.NEXT_PUBLIC_SIGNALING_BASE_URL;
+
+  if (!signalingBaseUrl) {
+    return Array.from(sources).join(" ");
+  }
+
+  try {
+    const signalingUrl = new URL(signalingBaseUrl);
+    sources.add(signalingUrl.origin);
+
+    if (LOOPBACK_HOSTS.includes(signalingUrl.hostname as (typeof LOOPBACK_HOSTS)[number])) {
+      for (const hostname of LOOPBACK_HOSTS) {
+        const loopbackVariant = new URL(signalingBaseUrl);
+        loopbackVariant.hostname = hostname;
+        sources.add(loopbackVariant.origin);
+      }
+    }
+  } catch {
+    // Ignore malformed env values here; env validation covers the runtime app path.
+  }
+
+  return Array.from(sources).join(" ");
+}
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -11,7 +39,7 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
   "style-src 'self' 'unsafe-inline' https:",
-  "connect-src 'self' https: wss: ws:",
+  `connect-src ${getAllowedConnectSources()}`,
   "frame-src 'self' https:",
   "worker-src 'self' blob:"
 ].join("; ");
@@ -44,6 +72,10 @@ const nextConfig: NextConfig = {
       {
         key: "X-Content-Type-Options",
         value: "nosniff"
+      },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(self), microphone=(self), geolocation=()"
       }
     ];
 
@@ -51,24 +83,6 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: baseHeaders
-      },
-      {
-        source: "/call/:path*",
-        headers: [
-          {
-            key: "Permissions-Policy",
-            value: "camera=(self), microphone=(self), geolocation=()"
-          }
-        ]
-      },
-      {
-        source: "/((?!call/).*)",
-        headers: [
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()"
-          }
-        ]
       }
     ];
   }

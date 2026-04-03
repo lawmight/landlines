@@ -18,11 +18,10 @@ export default function CheckoutCancelPage(): React.JSX.Element {
           Checkout canceled
         </p>
         <h1 className="display-serif max-w-[660px] text-center text-[clamp(2.6rem,6vw,4.2rem)] font-light leading-[1.06] tracking-[0.02em]">
-          Your line stays exactly as it was.
+          Your line is still waiting.
         </h1>
-        <p className="mt-6 max-w-[480px] text-center text-[15px] leading-[1.6] text-[var(--color-mid)]">
-          Nothing changed on your subscription. You can head back any time and finish checkout on Stripe&apos;s hosted
-          payment page.
+        <p className="mt-6 max-w-[520px] text-center text-[15px] leading-[1.6] text-[var(--color-mid)]">
+          No charge was made. You can come back anytime to upgrade with Stripe Managed Payments.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">

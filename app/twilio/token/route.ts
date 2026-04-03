@@ -7,11 +7,20 @@ import {
   ensureVideoRoom,
   tokenRequestSchema
 } from "@/lib/twilioToken";
+import { getSubscriptionTierForRequest } from "@/lib/subscription";
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const tier = await getSubscriptionTierForRequest();
+  if (tier !== "pro") {
+    return Response.json(
+      { error: "Active subscription required for calling." },
+      { status: 403 }
+    );
   }
 
   let body: unknown;

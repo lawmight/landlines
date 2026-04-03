@@ -1,75 +1,83 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 
-import { isConfiguredStripePriceId, stripe } from "@/lib/stripe";
-import { resolveStripeCustomerIdForUser } from "@/lib/stripe-billing";
+import { isCheckoutPlan, resolvePriceIdForPlan } from "@/lib/billing";
+import { env, landlinesAnnualPriceId } from "@/lib/env";
+import { STRIPE_MANAGED_PAYMENTS_API_VERSION, stripe } from "@/lib/stripe";
 
-function getPrimaryEmailAddress(user: Awaited<ReturnType<Awaited<ReturnType<typeof clerkClient>>["users"]["getUser"]>>): string | null {
-  const primary = user.emailAddresses.find((address) => address.id === user.primaryEmailAddressId);
-  return primary?.emailAddress ?? user.emailAddresses[0]?.emailAddress ?? null;
-}
+type ManagedPaymentsSessionCreateParams = {
+  managed_payments: {
+    enabled: true;
+  };
+};
 
-export async function GET(request: Request): Promise<Response> {
-  if (!stripe) {
-    return new Response("Stripe Checkout is not configured yet.", {
-      status: 503,
-    });
-  }
+export const runtime = "nodejs";
 
+export async function GET(request: NextRequest): Promise<Response> {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.redirect(new URL("/", request.url), { status: 303 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const url = new URL(request.url);
-  const priceId = url.searchParams.get("priceId");
-  if (!priceId || !isConfiguredStripePriceId(priceId)) {
-    return new Response("Unknown Stripe price.", {
-      status: 400,
-    });
+  const plan = request.nextUrl.searchParams.get("plan");
+  if (!isCheckoutPlan(plan)) {
+    return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
   }
 
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
-  const email = getPrimaryEmailAddress(user);
-  const customerId = await resolveStripeCustomerIdForUser({
-    stripe,
-    userClerkId: userId,
-    email,
+  const priceId = resolvePriceIdForPlan(plan, {
+    monthly: env.LANDLINES_MONTHLY_PRICE_ID,
+    annual: landlinesAnnualPriceId(),
   });
 
-  const origin = url.origin;
-  const session = await stripe.checkout.sessions.create({
-    allow_promotion_codes: true,
-    cancel_url: `${origin}/checkout/cancel`,
-    client_reference_id: userId,
-    customer: customerId ?? undefined,
-    customer_email: customerId ? undefined : (email ?? undefined),
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    metadata: {
-      clerkUserId: userId,
-      priceId,
-    },
-    mode: "subscription",
-    subscription_data: {
+  if (!priceId) {
+    return NextResponse.json({ error: "Missing Stripe price configuration." }, { status: 500 });
+  }
+
+  if (!env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY." }, { status: 500 });
+  }
+
+  const successUrl = new URL("/checkout/success", request.nextUrl.origin);
+  successUrl.searchParams.set("session_id", "{CHECKOUT_SESSION_ID}");
+
+  const cancelUrl = new URL("/checkout/cancel", request.nextUrl.origin);
+  cancelUrl.searchParams.set("plan", plan);
+
+  const session = await stripe().checkout.sessions.create(
+    {
+      mode: "subscription",
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: successUrl.toString(),
+      cancel_url: cancelUrl.toString(),
+      client_reference_id: userId,
       metadata: {
         clerkUserId: userId,
-        priceId,
+        plan,
       },
+      subscription_data: {
+        metadata: {
+          clerkUserId: userId,
+          plan,
+        },
+      },
+      managed_payments: {
+        enabled: true,
+      },
+    } as Stripe.Checkout.SessionCreateParams & ManagedPaymentsSessionCreateParams,
+    {
+      apiVersion: STRIPE_MANAGED_PAYMENTS_API_VERSION,
     },
-    success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-  });
+  );
 
   if (!session.url) {
-    return new Response("Stripe Checkout did not return a redirect URL.", {
-      status: 502,
-    });
+    return NextResponse.json({ error: "Stripe checkout URL missing." }, { status: 500 });
   }
 
-  return NextResponse.redirect(session.url, { status: 303 });
+  return NextResponse.redirect(session.url, 303);
 }

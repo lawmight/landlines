@@ -5,6 +5,7 @@ import Script from "next/script";
 
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
+import { clerkAppearance } from "@/lib/clerk-appearance";
 import { env } from "@/lib/env";
 
 import "./globals.css";
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>): React.JSX.Element {
   return (
-    <ClerkProvider>
+    <ClerkProvider appearance={clerkAppearance}>
       <html lang="en" suppressHydrationWarning>
         <body className={`${displayFont.variable} ${bodyFont.variable} min-h-screen antialiased`}>
           <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50">

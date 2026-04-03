@@ -1,16 +1,7 @@
 import Link from "next/link";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
 
-import { stripe } from "@/lib/stripe";
-import {
-  checkoutSessionClerkId,
-  checkoutSessionCustomerId,
-  checkoutSessionPriceId,
-  checkoutSessionSubscriptionId,
-  subscriptionStatusToTier,
-  syncStripeBillingState,
-} from "@/lib/stripe-billing";
+import { AuthShow } from "@/components/AuthShow";
+import { UserSync } from "@/components/UserSync";
 
 export const metadata = {
   title: "Payment Confirmed",
@@ -90,7 +81,15 @@ export default async function CheckoutSuccessPage(props: {
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <SignedIn>
+          <AuthShow
+            when="signed-in"
+            fallback={
+              <Link href="/" className="landing-btn landing-btn-primary">
+                Go home
+              </Link>
+            }
+          >
+            <UserSync />
             <Link href="/dashboard" className="landing-btn landing-btn-primary">
               Open Dashboard
             </Link>
@@ -100,12 +99,7 @@ export default async function CheckoutSuccessPage(props: {
             <Link href="/settings" className="landing-btn landing-btn-ghost">
               View settings
             </Link>
-          </SignedIn>
-          <SignedOut>
-            <Link href="/" className="landing-btn landing-btn-primary">
-              Go home
-            </Link>
-          </SignedOut>
+          </AuthShow>
         </div>
       </main>
     </div>

@@ -16,6 +16,7 @@ export const serverEnv = createEnv({
     TWILIO_API_SECRET: nonEmptyString.optional(),
     TWILIO_AUTH_TOKEN: nonEmptyString,
     TWILIO_TWIML_APP_SID: nonEmptyString,
+    TWILIO_STATUS_CALLBACK_BASE_URL: z.string().url().optional(),
     TWILIO_VIDEO_ROOM_TYPE: nonEmptyString.optional(),
   },
   runtimeEnv: process.env,

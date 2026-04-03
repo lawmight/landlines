@@ -76,7 +76,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const safeRoomName = escapeXml(roomName);
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Dial><Conference>${safeRoomName}</Conference></Dial></Response>`;
+  const voiceStatusCallbackUrl = new URL("/api/webhooks/twilio/voice-status", request.url);
+  const twiml =
+    `<?xml version="1.0" encoding="UTF-8"?><Response><Dial><Conference ` +
+    `statusCallback="${escapeXml(voiceStatusCallbackUrl.toString())}" ` +
+    `statusCallbackMethod="POST" ` +
+    `statusCallbackEvent="start end join leave" ` +
+    `endConferenceOnExit="true">` +
+    `${safeRoomName}</Conference></Dial></Response>`;
 
   return twimlResponse(twiml);
 }

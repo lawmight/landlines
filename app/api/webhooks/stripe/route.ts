@@ -1,107 +1,118 @@
-import { headers } from "next/headers";
-import { NextResponse } from "next/server";
-import type Stripe from "stripe";
+import { ConvexHttpClient } from "convex/browser";
+import Stripe from "stripe";
 
+import { api } from "@/convex/_generated/api";
+import {
+  getClerkUserIdFromStripeObject,
+  shouldActivateCheckoutSession,
+  subscriptionTierForStripeStatus,
+  type SubscriptionTier,
+} from "@/lib/billing";
 import { env } from "@/lib/env";
 import { stripe } from "@/lib/stripe";
-import {
-  checkoutSessionClerkId,
-  checkoutSessionCustomerId,
-  checkoutSessionPriceId,
-  checkoutSessionSubscriptionId,
-  primarySubscriptionPriceId,
-  subscriptionStatusToTier,
-  syncStripeBillingState,
-} from "@/lib/stripe-billing";
 
-async function syncCompletedCheckout(session: Stripe.Checkout.Session): Promise<void> {
-  const userClerkId = checkoutSessionClerkId(session);
-  if (!userClerkId) {
-    return;
-  }
+const convex = new ConvexHttpClient(env.NEXT_PUBLIC_CONVEX_URL);
 
-  await syncStripeBillingState({
+export const runtime = "nodejs";
+
+async function setTier(userClerkId: string, subscriptionTier: SubscriptionTier): Promise<void> {
+  await convex.mutation(api.users.setSubscriptionTier, {
     userClerkId,
-    subscriptionTier: "pro",
-    stripeCheckoutCompletedAt: Date.now(),
-    stripeCustomerId: checkoutSessionCustomerId(session),
-    stripePriceId: checkoutSessionPriceId(session),
-    stripeSubscriptionId: checkoutSessionSubscriptionId(session),
-    stripeSubscriptionStatus: "active",
+    subscriptionTier,
   });
 }
 
-async function syncSubscription(subscription: Stripe.Subscription): Promise<void> {
-  const userClerkId = subscription.metadata?.clerkUserId;
-  if (!userClerkId) {
+async function setTierFromCheckoutSession(
+  session: Stripe.Checkout.Session,
+  subscriptionTier: SubscriptionTier,
+): Promise<void> {
+  const clerkUserId = getClerkUserIdFromStripeObject(session);
+  if (!clerkUserId) {
     return;
   }
 
-  await syncStripeBillingState({
-    userClerkId,
-    subscriptionTier: subscriptionStatusToTier(subscription.status),
-    stripeCheckoutCompletedAt: Date.now(),
-    stripeCustomerId: typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id,
-    stripePriceId: primarySubscriptionPriceId(subscription),
-    stripeSubscriptionId: subscription.id,
-    stripeSubscriptionStatus: subscription.status,
-  });
+  await setTier(clerkUserId, subscriptionTier);
 }
 
-async function syncInvoice(invoice: Stripe.Invoice): Promise<void> {
-  const subscriptionRef = invoice.parent?.subscription_details?.subscription;
-  if (!stripe || !subscriptionRef) {
+async function setTierFromSubscription(
+  subscription: Stripe.Subscription,
+  subscriptionTier: SubscriptionTier | null,
+): Promise<void> {
+  if (!subscriptionTier) {
     return;
   }
 
-  const subscriptionId = typeof subscriptionRef === "string" ? subscriptionRef : subscriptionRef.id;
+  const clerkUserId = subscription.metadata?.clerkUserId;
+  if (!clerkUserId) {
+    return;
+  }
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  await syncSubscription(subscription);
+  await setTier(clerkUserId, subscriptionTier);
 }
 
 export async function POST(request: Request): Promise<Response> {
-  if (!stripe || !env.STRIPE_WEBHOOK_SECRET) {
-    return new Response("Stripe webhook secret is not configured.", {
-      status: 503,
-    });
+  if (!env.STRIPE_SECRET_KEY) {
+    return Response.json({ error: "Missing STRIPE_SECRET_KEY." }, { status: 500 });
   }
 
-  const signature = (await headers()).get("stripe-signature");
+  if (!env.STRIPE_WEBHOOK_SECRET) {
+    return Response.json({ error: "Missing STRIPE_WEBHOOK_SECRET." }, { status: 500 });
+  }
+
+  const signature = request.headers.get("stripe-signature");
   if (!signature) {
-    return new Response("Missing stripe-signature header.", {
-      status: 400,
-    });
+    return Response.json({ error: "Missing Stripe signature header." }, { status: 400 });
   }
 
   const payload = await request.text();
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(payload, signature, env.STRIPE_WEBHOOK_SECRET);
+    event = stripe().webhooks.constructEvent(payload, signature, env.STRIPE_WEBHOOK_SECRET);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown Stripe webhook error.";
-    return new Response(message, {
-      status: 400,
-    });
+    const message = error instanceof Error ? error.message : "Invalid webhook payload.";
+    return Response.json({ error: message }, { status: 400 });
   }
 
-  switch (event.type) {
-    case "checkout.session.completed":
-      await syncCompletedCheckout(event.data.object as Stripe.Checkout.Session);
-      break;
-    case "customer.subscription.created":
-    case "customer.subscription.deleted":
-    case "customer.subscription.updated":
-      await syncSubscription(event.data.object as Stripe.Subscription);
-      break;
-    case "invoice.paid":
-    case "invoice.payment_failed":
-      await syncInvoice(event.data.object as Stripe.Invoice);
-      break;
-    default:
-      break;
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (shouldActivateCheckoutSession(session)) {
+          await setTierFromCheckoutSession(session, "pro");
+        }
+        break;
+      }
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await setTierFromCheckoutSession(session, "pro");
+        break;
+      }
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await setTierFromCheckoutSession(session, "free");
+        break;
+      }
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await setTierFromSubscription(
+          subscription,
+          subscriptionTierForStripeStatus(subscription.status),
+        );
+        break;
+      }
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await setTierFromSubscription(subscription, "free");
+        break;
+      }
+      default:
+        break;
+    }
+  } catch (error) {
+    console.error("Stripe webhook processing failed:", error);
+    return Response.json({ error: "Webhook processing failed." }, { status: 500 });
   }
 
-  return NextResponse.json({ received: true });
+  return Response.json({ received: true });
 }

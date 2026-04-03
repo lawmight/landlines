@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { UserSync } from "@/components/UserSync";
 import { getProPrices } from "@/lib/stripe";
+import { isRedeemEnabled } from "@/lib/env";
 
 export default async function SettingsPage(): Promise<React.JSX.Element> {
   const { userId } = await auth();
@@ -41,7 +42,7 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
           </CardContent>
         </Card>
 
-        <BillingCard prices={prices} />
+        <BillingCard prices={prices} redeemEnabled={isRedeemEnabled()} />
       </div>
     </AppShell>
   );

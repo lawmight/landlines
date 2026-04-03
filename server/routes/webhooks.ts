@@ -47,12 +47,14 @@ webhookRouter.post("/twilio/voice-status", webhookRateLimiter, async (req, res) 
   }
 
   const parsed = voiceWebhookSchema.safeParse(normalizePayload(req.body as Record<string, unknown>));
+  const voiceMutation = parsed.success ? mapVoiceWebhookToMutation(parsed.data) : null;
+
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid voice webhook payload." });
   }
 
   try {
-    await forwardMutationIfPresent(mapVoiceWebhookToMutation(parsed.data));
+    await forwardMutationIfPresent(voiceMutation);
   } catch (error) {
     logger.error({ error, payload: parsed.data }, "Failed to forward Twilio voice webhook to Convex.");
     return res.status(502).json({ error: "Failed to persist call status update." });
@@ -68,12 +70,14 @@ webhookRouter.post("/twilio/video-status", webhookRateLimiter, async (req, res) 
   }
 
   const parsed = videoWebhookSchema.safeParse(normalizePayload(req.body as Record<string, unknown>));
+  const videoMutation = parsed.success ? mapVideoWebhookToMutation(parsed.data) : null;
+
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid video webhook payload." });
   }
 
   try {
-    await forwardMutationIfPresent(mapVideoWebhookToMutation(parsed.data));
+    await forwardMutationIfPresent(videoMutation);
   } catch (error) {
     logger.error({ error, payload: parsed.data }, "Failed to forward Twilio video webhook to Convex.");
     return res.status(502).json({ error: "Failed to persist call status update." });

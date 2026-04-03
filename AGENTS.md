@@ -22,7 +22,21 @@ All three can be started together with `npm run dev:all`.
 
 ### Environment variables
 
-All credentials live in `.env.local`. Clerk and Convex keys must be present for the app to render protected pages. Twilio keys are required only for actual voice/video calls. Polar keys are optional (billing/subscriptions).
+All credentials live in `.env.local`. Clerk and Convex keys must be present for the app to render protected pages. Twilio keys are required only for actual voice/video calls. Stripe keys are optional unless you are testing billing/subscriptions.
+
+### Stripe Managed Payments
+
+- **Required in `.env.local` for checkout:** `STRIPE_SECRET_KEY`, `LANDLINES_MONTHLY_PRICE_ID`, and either `LANDLINES_ANNUALY_PRICE_ID` or `LANDLINES_ANNUAL_PRICE_ID`.
+- **Required for webhook sync:** `STRIPE_WEBHOOK_SECRET`.
+- The checkout route uses Stripe Hosted Checkout with `managed_payments.enabled = true` and the preview API version `2026-03-04.preview`.
+- The webhook endpoint is `POST /api/webhooks/stripe` and updates Convex `users.subscriptionTier` between `free` and `pro`.
+- **Optional:** `LANDLINES_REDEEM_CODES` — comma-separated list of codes (e.g. `my-secret-code,dev-pro-2024`). When set, a "Redeem code" section appears on Settings for non-Pro users; submitting a valid code sets their Convex `subscriptionTier` to `pro` without going through Stripe (useful for dev or personal accounts). Codes are matched case-insensitively; the list is server-only and never exposed to the client.
+
+### Subscription gating
+
+- Dashboard, Invites, and Call room require an active Pro subscription. Free or unauthenticated users are redirected to `/settings` where they can upgrade via BillingCard.
+- `POST /api/twilio/token` returns `403` with `{ error: "Active subscription required for calling." }` when the user is not Pro, so voice/video tokens cannot be obtained without a subscription.
+- Enforcement is server-side only via `lib/subscription.ts` (`getSubscriptionTierForRequest`, `requirePro`), using Clerk auth and Convex `api.users.getProfile`. Ensure the Clerk Dashboard has a JWT template named `"convex"` with audience `convex` for Convex auth.
 
 ### Gotchas
 

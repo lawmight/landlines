@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { CallPageShell } from "@/components/call/CallPageShell";
 import { VoiceRoom } from "@/components/VoiceRoom";
 import { VideoRoom } from "@/components/VideoRoom";
+import { requirePro } from "@/lib/subscription";
 
 interface CallRoomPageProps {
   params: Promise<{ roomId: string }>;
@@ -12,12 +13,14 @@ interface CallRoomPageProps {
 
 /**
  * Auth-protected active call room view.
+ * Requires Pro subscription; free users are redirected to Settings to upgrade.
  */
 export default async function CallRoomPage({ params, searchParams }: CallRoomPageProps): Promise<React.JSX.Element> {
   const { userId } = await auth();
   if (!userId) {
     redirect("/");
   }
+  await requirePro();
 
   const { roomId } = await params;
   const { mode: modeParam } = await searchParams;

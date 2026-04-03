@@ -6,6 +6,13 @@ convex/.env.local
 dist
 coverage
 *.log
+logs
 .cursor
 .vercel
 .env*.local
+env_val.txt
+tsconfig.tsbuildinfo
+
+# Presentation avatar replacement (generated overlays and local video copy)
+scripts/presentation/overlays/
+scripts/presentation/*.mp4

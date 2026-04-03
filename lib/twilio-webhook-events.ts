@@ -5,7 +5,12 @@ export const voiceWebhookSchema = z.object({
   CallStatus: z.string().optional(),
   ConferenceSid: z.string().optional(),
   ErrorCode: z.string().optional(),
+  FriendlyName: z.string().optional(),
+  ParticipantCallStatus: z.string().optional(),
+  ReasonConferenceEnded: z.string().optional(),
+  ReasonParticipantLeft: z.string().optional(),
   RoomName: z.string().optional(),
+  StatusCallbackEvent: z.string().optional(),
   To: z.string().optional(),
   From: z.string().optional(),
 });
@@ -27,9 +32,49 @@ function normalizeEvent(value: string | undefined): string {
 }
 
 export function mapVoiceWebhookToMutation(payload: z.infer<typeof voiceWebhookSchema>): ConvexWebhookMutation | null {
-  const roomName = payload.RoomName;
+  const roomName = payload.RoomName ?? payload.FriendlyName;
   if (!roomName) {
     return null;
+  }
+
+  const callbackEvent = normalizeEvent(payload.StatusCallbackEvent);
+  const participantCallStatus = normalizeEvent(payload.ParticipantCallStatus);
+  if (callbackEvent === "conference-end") {
+    return {
+      path: "calls:internalEndCallByRoom",
+      args: {
+        roomName,
+        reason: payload.ReasonConferenceEnded
+          ? `voice_${payload.ReasonConferenceEnded.replaceAll("_", "-")}`
+          : "voice_conference-end",
+      },
+    };
+  }
+
+  if (callbackEvent === "participant-leave") {
+    if (participantCallStatus === "failed" || participantCallStatus === "busy" || participantCallStatus === "canceled") {
+      return {
+        path: "calls:internalFailCallByRoom",
+        args: {
+          roomName,
+          reason: `voice_${participantCallStatus}`,
+        },
+      };
+    }
+
+    if (participantCallStatus === "completed" || participantCallStatus === "no-answer") {
+      return {
+        path: "calls:internalEndCallByRoom",
+        args: {
+          roomName,
+          reason: payload.ReasonParticipantLeft
+            ? `voice_${payload.ReasonParticipantLeft}`
+            : participantCallStatus === "no-answer"
+              ? "no_answer"
+              : "voice_completed",
+        },
+      };
+    }
   }
 
   const status = normalizeEvent(payload.CallStatus);
@@ -78,7 +123,7 @@ export function mapVideoWebhookToMutation(payload: z.infer<typeof videoWebhookSc
     };
   }
 
-  if (event === "room-ended" || event === "room-completed" || event === "participant-disconnected") {
+  if (event === "room-ended" || event === "room-completed") {
     return {
       path: "calls:internalEndCallByRoom",
       args: {

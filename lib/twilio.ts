@@ -10,6 +10,23 @@ const tokenSchema = z.object({
 
 export type TwilioTokenPayload = z.infer<typeof tokenSchema>;
 
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
+function getSignalingBaseUrl(): string {
+  const baseUrl = new URL(env.NEXT_PUBLIC_SIGNALING_BASE_URL);
+
+  if (typeof window === "undefined") {
+    return baseUrl.origin;
+  }
+
+  const currentHostname = window.location.hostname;
+  if (LOOPBACK_HOSTS.has(baseUrl.hostname) && LOOPBACK_HOSTS.has(currentHostname)) {
+    baseUrl.hostname = currentHostname;
+  }
+
+  return baseUrl.origin;
+}
+
 /**
  * Requests Twilio voice/video access tokens from the signaling server.
  * @param mode - "voice" skips Video room creation; "video" ensures the room exists.
@@ -26,7 +43,7 @@ export async function fetchTwilioTokens(
     throw new Error("Cannot get call token: room not ready.");
   }
 
-  const response = await fetch(`${env.NEXT_PUBLIC_SIGNALING_BASE_URL}/twilio/token`, {
+  const response = await fetch(`${getSignalingBaseUrl()}/twilio/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
