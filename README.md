@@ -33,3 +33,4 @@ Private, invite-only voice and video calling built with Next.js App Router, Cler
 - **Convex setup required:** Run `npx convex dev` before starting the app. The `convex/_generated/*` files are scaffold placeholders until Convex generates strongly typed API references. Without this step, call features will fail at runtime.
 - Presence heartbeat runs every 30 seconds through `usePresence`.
 - Invite acceptance enforces the free-tier max of 20 contacts at mutation level.
+- Stripe Checkout uses hosted payment pages. Match the Landlines theme from the Stripe Dashboard under Checkout branding (logo, colors, font, and corner radius), and point your webhook endpoint at `/api/webhooks/stripe`.

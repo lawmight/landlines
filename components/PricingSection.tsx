@@ -36,6 +36,9 @@ export function PricingSection({ prices }: PricingSectionProps): React.JSX.Eleme
       <p className="anim-3 mt-4 text-center text-[15px] leading-[1.6] text-[var(--color-mid)]">
         No free trials. No gimmicks. Just private calling.
       </p>
+      <p className="anim-3 mt-2 text-center text-[13px] leading-[1.6] text-[var(--color-mid)]">
+        Checkout opens on Stripe&apos;s hosted payment page with your brand settings applied.
+      </p>
 
       <div className="anim-4 mt-12 grid gap-6 md:grid-cols-2">
         {/* Monthly */}
